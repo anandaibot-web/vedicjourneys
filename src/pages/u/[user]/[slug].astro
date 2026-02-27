@@ -1,26 +1,36 @@
 ---
 // src/pages/u/[user]/[slug].astro
-// Dynamic route: /u/anand/lhasa-tibet-2025-monastic-serenity
 import { getCollection } from "astro:content";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
-  return posts.map((post) => {
-    // post.id looks like: "anand/lhasa-tibet-2025"
-    const parts = post.id.split("/");
+  
+  const paths = [];
+  
+  for (const post of posts) {
+    // post.id looks like: "anand/my-post-slug" or just "my-post-slug"
+    const parts = post.id.replace(/\.md$/, "").split("/");
+    
+    // Must have both user and slug segments
+    if (parts.length < 2 || !parts[0] || !parts[1]) continue;
+    
     const user = parts[0];
-    const slug = parts.slice(1).join("/").replace(/\.md$/, "");
-    return {
+    const slug = parts.slice(1).join("/");
+    
+    if (!slug) continue;
+    
+    paths.push({
       params: { user, slug },
       props: { post },
-    };
-  });
+    });
+  }
+  
+  return paths;
 }
 
 const { post } = Astro.props;
 const { user } = Astro.params;
 
-// Guard: ensure the post's declared user matches the URL
 if (!post || post.data.user !== user) {
   return new Response("Not found", { status: 404 });
 }
@@ -32,7 +42,6 @@ const siteUrl = import.meta.env.SITE || "https://vedicjourneys.vercel.app";
 const canonicalUrl = `${siteUrl}/u/${user}/${Astro.params.slug}`;
 const heroImage = post.data.heroImage || "";
 
-// JSON-LD structured data
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
@@ -40,15 +49,8 @@ const jsonLd = {
   description: post.data.description,
   image: heroImage,
   datePublished: post.data.pubDate,
-  author: {
-    "@type": "Person",
-    name: user,
-  },
-  publisher: {
-    "@type": "Organization",
-    name: "Vedic Journeys",
-    url: siteUrl,
-  },
+  author: { "@type": "Person", name: user },
+  publisher: { "@type": "Organization", name: "Vedic Journeys", url: siteUrl },
   keywords: (post.data.keywords || []).join(", "),
   url: canonicalUrl,
 };
@@ -63,16 +65,12 @@ const jsonLd = {
     {post.data.description && (
       <meta name="description" content={post.data.description} />
     )}
-
     <link rel="canonical" href={canonicalUrl} />
-
     {noindex && <meta name="robots" content="noindex,nofollow" />}
-
     {post.data.keywords && post.data.keywords.length > 0 && (
       <meta name="keywords" content={post.data.keywords.join(", ")} />
     )}
 
-    <!-- Open Graph -->
     <meta property="og:type" content="article" />
     <meta property="og:title" content={post.data.title} />
     {post.data.description && (
@@ -82,7 +80,6 @@ const jsonLd = {
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content="Vedic Journeys" />
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={post.data.title} />
     {post.data.description && (
@@ -90,7 +87,6 @@ const jsonLd = {
     )}
     {heroImage && <meta name="twitter:image" content={heroImage} />}
 
-    <!-- JSON-LD -->
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 
     <style>
