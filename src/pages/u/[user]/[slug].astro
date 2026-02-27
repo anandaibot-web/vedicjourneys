@@ -1,0 +1,228 @@
+---
+// src/pages/u/[user]/[slug].astro
+// Dynamic route: /u/anand/lhasa-tibet-2025-monastic-serenity
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  return posts.map((post) => {
+    // post.id looks like: "anand/lhasa-tibet-2025"
+    const parts = post.id.split("/");
+    const user = parts[0];
+    const slug = parts.slice(1).join("/").replace(/\.md$/, "");
+    return {
+      params: { user, slug },
+      props: { post },
+    };
+  });
+}
+
+const { post } = Astro.props;
+const { user } = Astro.params;
+
+// Guard: ensure the post's declared user matches the URL
+if (!post || post.data.user !== user) {
+  return new Response("Not found", { status: 404 });
+}
+
+const { Content } = await post.render();
+
+const noindex = post.data.visibility !== "public";
+const siteUrl = import.meta.env.SITE || "https://vedicjourneys.vercel.app";
+const canonicalUrl = `${siteUrl}/u/${user}/${Astro.params.slug}`;
+const heroImage = post.data.heroImage || "";
+
+// JSON-LD structured data
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description: post.data.description,
+  image: heroImage,
+  datePublished: post.data.pubDate,
+  author: {
+    "@type": "Person",
+    name: user,
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Vedic Journeys",
+    url: siteUrl,
+  },
+  keywords: (post.data.keywords || []).join(", "),
+  url: canonicalUrl,
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{post.data.title} | Vedic Journeys</title>
+
+    {post.data.description && (
+      <meta name="description" content={post.data.description} />
+    )}
+
+    <link rel="canonical" href={canonicalUrl} />
+
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+
+    {post.data.keywords && post.data.keywords.length > 0 && (
+      <meta name="keywords" content={post.data.keywords.join(", ")} />
+    )}
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={post.data.title} />
+    {post.data.description && (
+      <meta property="og:description" content={post.data.description} />
+    )}
+    {heroImage && <meta property="og:image" content={heroImage} />}
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="Vedic Journeys" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={post.data.title} />
+    {post.data.description && (
+      <meta name="twitter:description" content={post.data.description} />
+    )}
+    {heroImage && <meta name="twitter:image" content={heroImage} />}
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        background: #fdfcf8;
+        color: #1a1a1a;
+        line-height: 1.75;
+      }
+
+      .hero {
+        width: 100%;
+        max-height: 480px;
+        overflow: hidden;
+        background: #111;
+      }
+
+      .hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        opacity: 0.92;
+      }
+
+      .container {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 4rem;
+      }
+
+      .meta {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 0.85rem;
+        color: #777;
+        margin: 0.5rem 0 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1rem;
+      }
+
+      h1 {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 700;
+        line-height: 1.25;
+        margin: 1.5rem 0 0.5rem;
+        color: #111;
+      }
+
+      article h2 {
+        font-size: 1.3rem;
+        margin-top: 2.5rem;
+        color: #222;
+        border-bottom: 1px solid #e8e3d8;
+        padding-bottom: 0.4rem;
+      }
+
+      article p { margin: 1rem 0; }
+
+      article blockquote {
+        border-left: 3px solid #c8aa6e;
+        margin: 1.5rem 0;
+        padding: 0.5rem 0 0.5rem 1.25rem;
+        color: #555;
+        font-style: italic;
+      }
+
+      .badge {
+        display: inline-block;
+        background: #f0ebe0;
+        color: #666;
+        font-size: 0.72rem;
+        font-family: sans-serif;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .unlisted-notice {
+        background: #fff8e1;
+        border: 1px solid #ffe082;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        font-family: sans-serif;
+        color: #795548;
+        margin-bottom: 1.5rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    {heroImage && (
+      <div class="hero">
+        <img src={heroImage} alt={post.data.title} loading="eager" />
+      </div>
+    )}
+
+    <div class="container">
+      {noindex && (
+        <div class="unlisted-notice">
+          🔒 This post is unlisted — only people with the link can see it.
+        </div>
+      )}
+
+      <h1>{post.data.title}</h1>
+
+      <div class="meta">
+        {post.data.location && <span>📍 {post.data.location}</span>}
+        {post.data.pubDate && (
+          <span>
+            📅{" "}
+            {new Date(post.data.pubDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </span>
+        )}
+        {post.data.readTime && <span>⏱ {post.data.readTime} min read</span>}
+        {(post.data.keywords || []).slice(0, 3).map((kw) => (
+          <span class="badge">{kw}</span>
+        ))}
+      </div>
+
+      <article>
+        <Content />
+      </article>
+    </div>
+  </body>
+</html>
