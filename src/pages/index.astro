@@ -1,49 +1,535 @@
 ---
+// src/pages/index.astro
+import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import Footer from '../components/Footer.astro';
+import PostCard from '../components/PostCard.astro';
+
+const allPosts = (await getCollection('blog'))
+  .filter(p => !p.id.startsWith('_review'))
+  .filter(p => p.data.visibility !== 'private')
+  .sort((a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf());
+
+const featured = allPosts[0];
+const recent = allPosts.slice(1, 7);
+
+// Collect unique locations for the tag cloud
+const locations = [...new Set(
+  allPosts
+    .map(p => p.data.location)
+    .filter(l => l && l.trim() !== '' && !l.startsWith('Trip-'))
+)];
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This template
-				serves as a lightweight, minimally-styled starting point for anyone looking to build a personal
-				website, blog, or portfolio with Astro.
-			</p>
-			<p>
-				This template comes with a few integrations already configured in your
-				<code>astro.config.mjs</code> file. You can customize your setup with
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to
-				<a href="https://docs.astro.build/">read the docs</a>
-				or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out
-				<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>
-				by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
-		</main>
-		<Footer />
-	</body>
+<head>
+  <BaseHead
+    title="Vedic Journeys — Travel, Stillness & Advaita"
+    description="A personal spiritual travel diary — pilgrimages, high-altitude reflections, and the Vedic lens on the world."
+  />
+  <style>
+    /* ── Tokens ─────────────────────────────────────── */
+    :root {
+      --cream:   #faf7f2;
+      --warm:    #f0ebe0;
+      --sand:    #d4c5a9;
+      --terracotta: #b5673d;
+      --saffron: #e8922a;
+      --deep:    #2c1810;
+      --mid:     #6b4c38;
+      --light:   #9a7b68;
+      --serif:   'Playfair Display', 'Georgia', serif;
+      --sans:    'Crimson Pro', 'Palatino Linotype', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cream);
+      color: var(--deep);
+      font-family: var(--sans);
+      font-size: 18px;
+      line-height: 1.7;
+    }
+
+    /* ── Hero ───────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 92vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    .hero-image-panel {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-image-panel img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
+    .hero-image-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, transparent 60%, var(--cream) 100%);
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem 5rem 4rem 3rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--deep);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--terracotta);
+    }
+
+    .hero-tagline {
+      font-size: 1.1rem;
+      color: var(--mid);
+      max-width: 38ch;
+      margin-bottom: 2.5rem;
+      line-height: 1.8;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--terracotta);
+      color: #fff;
+      padding: 0.875rem 2rem;
+      border-radius: 2px;
+      text-decoration: none;
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      transition: background 0.2s;
+      width: fit-content;
+    }
+
+    .hero-cta:hover { background: var(--deep); }
+
+    .hero-sanskrit {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--sand);
+      font-size: 0.85rem;
+      color: var(--light);
+      font-style: italic;
+    }
+
+    /* ── Featured post ──────────────────────────────── */
+    .featured-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5rem 2rem 3rem;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--sand);
+    }
+
+    .featured-card {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 0;
+      background: white;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 4px 40px rgba(44,24,16,0.08);
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.3s;
+    }
+
+    .featured-card:hover {
+      box-shadow: 0 8px 60px rgba(44,24,16,0.15);
+    }
+
+    .featured-img {
+      aspect-ratio: 4/3;
+      overflow: hidden;
+    }
+
+    .featured-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+
+    .featured-card:hover .featured-img img {
+      transform: scale(1.04);
+    }
+
+    .featured-body {
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: var(--warm);
+    }
+
+    .featured-tag {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 1rem;
+    }
+
+    .featured-title {
+      font-family: var(--serif);
+      font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--deep);
+      margin-bottom: 1rem;
+    }
+
+    .featured-desc {
+      color: var(--mid);
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--light);
+    }
+
+    .post-meta .dot { color: var(--sand); }
+
+    /* ── Recent grid ────────────────────────────────── */
+    .recent-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem 5rem;
+    }
+
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    /* ── Location tags ──────────────────────────────── */
+    .locations-section {
+      background: var(--deep);
+      padding: 4rem 2rem;
+    }
+
+    .locations-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .locations-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 2rem;
+    }
+
+    .locations-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .location-tag {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid rgba(212,197,169,0.3);
+      border-radius: 2px;
+      color: var(--sand);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+    }
+
+    .location-tag:hover {
+      background: var(--terracotta);
+      border-color: var(--terracotta);
+      color: white;
+    }
+
+    /* ── Search bar ─────────────────────────────────── */
+    .search-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem 1rem;
+    }
+
+    .search-wrap {
+      position: relative;
+      max-width: 560px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.875rem 1.25rem 0.875rem 3rem;
+      border: 1px solid var(--sand);
+      border-radius: 2px;
+      background: white;
+      font-family: var(--sans);
+      font-size: 1rem;
+      color: var(--deep);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus { border-color: var(--terracotta); }
+    .search-input::placeholder { color: var(--light); }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--light);
+      pointer-events: none;
+    }
+
+    #search-results {
+      margin-top: 1rem;
+    }
+
+    .search-result-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--warm);
+    }
+
+    .search-result-item a {
+      text-decoration: none;
+      color: var(--deep);
+    }
+
+    .search-result-item a:hover .result-title {
+      color: var(--terracotta);
+    }
+
+    .result-title {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .result-meta {
+      font-size: 0.8rem;
+      color: var(--light);
+    }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-image-panel { height: 50vw; }
+      .hero-image-panel::after { background: linear-gradient(to bottom, transparent 60%, var(--cream) 100%); }
+      .hero-content { padding: 2.5rem 1.5rem; }
+      .featured-card { grid-template-columns: 1fr; }
+      .featured-img { aspect-ratio: 16/9; }
+      .posts-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .posts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <Header />
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    {featured?.data.heroImage && (
+      <div class="hero-image-panel">
+        <img src={featured.data.heroImage} alt={featured.data.title} />
+      </div>
+    )}
+    <div class="hero-content">
+      <p class="hero-eyebrow">Vedic Journeys</p>
+      <h1 class="hero-title">
+        Travel as <em>inquiry</em>,<br />
+        not escape.
+      </h1>
+      <p class="hero-tagline">
+        A personal diary of pilgrimages, high-altitude silences, and the Advaita lens on the landscapes we move through.
+      </p>
+      <a href="/blog" class="hero-cta">
+        Read the journal →
+      </a>
+      <p class="hero-sanskrit">
+        सर्वं खल्विदं ब्रह्म — All this is indeed Brahman.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Search ── -->
+  <div class="search-section">
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        type="text"
+        id="search-input"
+        class="search-input"
+        placeholder="Search posts by title, location, or keyword…"
+        autocomplete="off"
+      />
+    </div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- ── Featured post ── -->
+  {featured && (
+    <section class="featured-section">
+      <p class="section-label">Latest journey</p>
+      <a class="featured-card" href={`/u/${featured.data.user}/${featured.id.split('/').pop()?.replace('.md','')}`}>
+        {featured.data.heroImage && (
+          <div class="featured-img">
+            <img src={featured.data.heroImage} alt={featured.data.title} loading="eager" />
+          </div>
+        )}
+        <div class="featured-body">
+          {featured.data.location && <p class="featured-tag">📍 {featured.data.location}</p>}
+          <h2 class="featured-title">{featured.data.title}</h2>
+          <p class="featured-desc">{featured.data.description}</p>
+          <div class="post-meta">
+            <span>{new Date(featured.data.pubDate).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</span>
+            {featured.data.readTime && <><span class="dot">·</span><span>{featured.data.readTime} min read</span></>}
+          </div>
+        </div>
+      </a>
+    </section>
+  )}
+
+  <!-- ── Recent posts grid ── -->
+  {recent.length > 0 && (
+    <section class="recent-section">
+      <p class="section-label">Recent posts</p>
+      <div class="posts-grid">
+        {recent.map(post => (
+          <PostCard post={post} />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- ── Location tags ── -->
+  {locations.length > 0 && (
+    <section class="locations-section">
+      <div class="locations-inner">
+        <p class="locations-label">Browse by destination</p>
+        <div class="locations-tags">
+          {locations.map(loc => (
+            <a
+              href={`/tag/${loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g,'')}`}
+              class="location-tag"
+            >
+              {loc}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <Footer />
+
+  <!-- ── Search script ── -->
+  <script define:vars={{ posts: allPosts.map(p => ({
+    title: p.data.title,
+    description: p.data.description,
+    location: p.data.location || '',
+    keywords: (p.data.keywords || []).join(' '),
+    url: `/u/${p.data.user}/${p.id.split('/').pop()?.replace('.md','')}`,
+    date: p.data.pubDate,
+    readTime: p.data.readTime,
+  })) }}>
+    const input = document.getElementById('search-input');
+    const results = document.getElementById('search-results');
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      if (!q) { results.innerHTML = ''; return; }
+
+      const matches = posts.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.location.toLowerCase().includes(q) ||
+        p.keywords.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q)
+      ).slice(0, 6);
+
+      if (!matches.length) {
+        results.innerHTML = '<p style="color: var(--light); font-size: 0.9rem; padding: 0.5rem 0;">No posts found.</p>';
+        return;
+      }
+
+      results.innerHTML = matches.map(p => `
+        <div class="search-result-item">
+          <a href="${p.url}">
+            <div class="result-title">${p.title}</div>
+            <div class="result-meta">
+              ${p.location ? `📍 ${p.location} &nbsp;·&nbsp; ` : ''}
+              ${new Date(p.date).toLocaleDateString('en-US', { year:'numeric', month:'short' })}
+              ${p.readTime ? ` &nbsp;·&nbsp; ${p.readTime} min read` : ''}
+            </div>
+          </a>
+        </div>
+      `).join('');
+    });
+  </script>
+</body>
 </html>

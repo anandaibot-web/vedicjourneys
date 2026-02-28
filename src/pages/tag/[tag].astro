@@ -1,0 +1,218 @@
+---
+// src/pages/tag/[tag].astro
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import PostCard from '../../components/PostCard.astro';
+
+export async function getStaticPaths() {
+  const allPosts = (await getCollection('blog'))
+    .filter(p => !p.id.startsWith('_review'))
+    .filter(p => p.data.visibility !== 'private');
+
+  // Collect all unique locations
+  const locations = [...new Set(
+    allPosts
+      .map(p => p.data.location)
+      .filter(l => l && l.trim() !== '' && !l.startsWith('Trip-'))
+  )];
+
+  return locations.map(location => ({
+    params: {
+      tag: location.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    },
+    props: { location }
+  }));
+}
+
+const { tag } = Astro.params;
+const { location } = Astro.props;
+
+const allPosts = (await getCollection('blog'))
+  .filter(p => !p.id.startsWith('_review'))
+  .filter(p => p.data.visibility !== 'private')
+  .filter(p => p.data.location === location)
+  .sort((a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf());
+
+// All locations for the sidebar
+const allLocations = [...new Set(
+  (await getCollection('blog'))
+    .filter(p => !p.id.startsWith('_review'))
+    .map(p => p.data.location)
+    .filter(l => l && l.trim() !== '' && !l.startsWith('Trip-'))
+)].sort();
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <BaseHead
+    title={`${location} — Vedic Journeys`}
+    description={`Travel posts from ${location} — reflections, pilgrimage notes, and Advaita observations.`}
+  />
+  <style>
+    :root {
+      --cream:      #faf7f2;
+      --warm:       #f0ebe0;
+      --sand:       #d4c5a9;
+      --terracotta: #b5673d;
+      --deep:       #2c1810;
+      --mid:        #6b4c38;
+      --light:      #9a7b68;
+      --serif:      'Playfair Display', 'Georgia', serif;
+      --sans:       'Crimson Pro', 'Palatino Linotype', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cream);
+      color: var(--deep);
+      font-family: var(--sans);
+    }
+
+    .page-header {
+      background: var(--deep);
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+    }
+
+    .breadcrumb {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 1.5rem;
+    }
+
+    .breadcrumb a {
+      color: var(--sand);
+      text-decoration: none;
+      opacity: 0.7;
+    }
+
+    .breadcrumb a:hover { opacity: 1; }
+
+    .page-title {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-subtitle {
+      color: var(--sand);
+      font-size: 0.95rem;
+      opacity: 0.8;
+    }
+
+    /* ── Layout ── */
+    .content-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem 5rem;
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    /* ── Posts grid ── */
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 1.25rem;
+    }
+
+    .sidebar-tags {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .sidebar-tag {
+      padding: 0.5rem 0.75rem;
+      border-radius: 2px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      color: var(--mid);
+      transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+
+    .sidebar-tag:hover {
+      background: var(--warm);
+      border-color: var(--sand);
+    }
+
+    .sidebar-tag.current {
+      background: var(--terracotta);
+      color: white;
+    }
+
+    @media (max-width: 860px) {
+      .content-wrap {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .sidebar { order: -1; }
+      .sidebar-tags {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 580px) {
+      .posts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <Header />
+
+  <div class="page-header">
+    <p class="breadcrumb">
+      <a href="/">Home</a> &nbsp;/&nbsp;
+      <a href="/blog">Journeys</a> &nbsp;/&nbsp;
+      {location}
+    </p>
+    <h1 class="page-title">📍 {location}</h1>
+    <p class="page-subtitle">{allPosts.length} post{allPosts.length !== 1 ? 's' : ''}</p>
+  </div>
+
+  <div class="content-wrap">
+    <div class="posts-grid">
+      {allPosts.map(post => (
+        <PostCard post={post} size="large" />
+      ))}
+    </div>
+
+    <aside class="sidebar">
+      <p class="sidebar-title">Other destinations</p>
+      <div class="sidebar-tags">
+        {allLocations.map(loc => (
+          <a
+            href={`/tag/${loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g,'')}`}
+            class={`sidebar-tag ${loc === location ? 'current' : ''}`}
+          >
+            {loc}
+          </a>
+        ))}
+      </div>
+    </aside>
+  </div>
+
+  <Footer />
+</body>
+</html>

@@ -1,0 +1,167 @@
+---
+// src/components/PostCard.astro
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+  size?: 'normal' | 'large';
+}
+
+const { post, size = 'normal' } = Astro.props;
+const slug = post.id.split('/').pop()?.replace('.md', '');
+const url = `/u/${post.data.user}/${slug}`;
+const date = new Date(post.data.pubDate).toLocaleDateString('en-US', {
+  year: 'numeric', month: 'short', day: 'numeric'
+});
+---
+
+<article class={`post-card ${size}`}>
+  <a href={url} class="card-link">
+    <div class="card-image">
+      {post.data.heroImage ? (
+        <img src={post.data.heroImage} alt={post.data.title} loading="lazy" />
+      ) : (
+        <div class="card-placeholder">
+          <span>✦</span>
+        </div>
+      )}
+      {post.data.location && !post.data.location.startsWith('Trip-') && (
+        <span class="card-location">📍 {post.data.location}</span>
+      )}
+    </div>
+    <div class="card-body">
+      <h3 class="card-title">{post.data.title}</h3>
+      {size === 'large' && post.data.description && (
+        <p class="card-desc">{post.data.description}</p>
+      )}
+      <div class="card-meta">
+        <span class="card-date">{date}</span>
+        {post.data.readTime && (
+          <>
+            <span class="dot">·</span>
+            <span>{post.data.readTime} min read</span>
+          </>
+        )}
+      </div>
+    </div>
+  </a>
+</article>
+
+<style>
+  :root {
+    --cream:      #faf7f2;
+    --warm:       #f0ebe0;
+    --sand:       #d4c5a9;
+    --terracotta: #b5673d;
+    --deep:       #2c1810;
+    --mid:        #6b4c38;
+    --light:      #9a7b68;
+    --serif:      'Playfair Display', 'Georgia', serif;
+    --sans:       'Crimson Pro', 'Palatino Linotype', Georgia, serif;
+  }
+
+  .post-card {
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(44,24,16,0.06);
+    transition: box-shadow 0.3s, transform 0.3s;
+  }
+
+  .post-card:hover {
+    box-shadow: 0 6px 40px rgba(44,24,16,0.12);
+    transform: translateY(-2px);
+  }
+
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .card-image {
+    position: relative;
+    aspect-ratio: 16/10;
+    overflow: hidden;
+    background: var(--warm);
+  }
+
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+    display: block;
+  }
+
+  .post-card:hover .card-image img {
+    transform: scale(1.04);
+  }
+
+  .card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--warm) 0%, var(--sand) 100%);
+    color: var(--terracotta);
+    font-size: 2rem;
+  }
+
+  .card-location {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    background: rgba(44,24,16,0.75);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 2px;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(4px);
+  }
+
+  .card-body {
+    padding: 1.25rem 1.5rem 1.5rem;
+  }
+
+  .card-title {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--deep);
+    margin-bottom: 0.6rem;
+    transition: color 0.2s;
+  }
+
+  .post-card:hover .card-title {
+    color: var(--terracotta);
+  }
+
+  .large .card-title {
+    font-size: 1.4rem;
+  }
+
+  .card-desc {
+    font-size: 0.9rem;
+    color: var(--mid);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--light);
+  }
+
+  .dot { color: var(--sand); }
+</style>
