@@ -1,4 +1,3 @@
-cat > ~/vedicjourneys-site/vedicjourneys/vercel.json << 'EOF'
 {
   "framework": "astro",
   "headers": [
@@ -10,4 +9,3 @@ cat > ~/vedicjourneys-site/vedicjourneys/vercel.json << 'EOF'
     }
   ]
 }
-EOF
