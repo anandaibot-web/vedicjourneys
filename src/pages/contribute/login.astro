@@ -1,12 +1,26 @@
 ---
 // src/pages/contribute/login.astro
-// Redirect if already logged in
-import { getSession } from '../../lib/auth';
+// Handles both GET (show form) and POST (process login) in one file.
+// Avoids cross-site POST issue by not using a separate API route.
+import { validateCredentials, createSession, getSession } from '../../lib/auth';
 
 const session = await getSession(Astro.cookies);
 if (session) return Astro.redirect('/contribute');
 
-const error = Astro.url.searchParams.get('error');
+let error = Astro.url.searchParams.get('error');
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const handle = (form.get('handle') as string || '').trim().toLowerCase();
+  const passphrase = (form.get('passphrase') as string || '').trim();
+
+  if (handle && passphrase && validateCredentials(handle, passphrase)) {
+    await createSession(Astro.cookies, handle);
+    return Astro.redirect('/contribute');
+  } else {
+    error = 'invalid';
+  }
+}
 ---
 
 <!doctype html>
@@ -42,77 +56,30 @@ const error = Astro.url.searchParams.get('error');
       width: 100%;
       max-width: 420px;
     }
-    .logo {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-    .logo-mark {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-    }
-    .logo-title {
-      font-family: var(--serif);
-      font-size: 1.4rem;
-      color: var(--deep);
-      margin-bottom: 0.25rem;
-    }
-    .logo-sub {
-      font-size: 0.75rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--light);
-    }
+    .logo { text-align: center; margin-bottom: 2.5rem; }
+    .logo-mark { font-size: 2rem; margin-bottom: 0.5rem; }
+    .logo-title { font-family: var(--serif); font-size: 1.4rem; color: var(--deep); margin-bottom: 0.25rem; }
+    .logo-sub { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--light); }
     .error {
-      background: #fdf0ec;
-      border: 1px solid var(--terracotta);
-      border-radius: 2px;
-      padding: 0.75rem 1rem;
-      font-size: 0.9rem;
-      color: var(--terracotta);
-      margin-bottom: 1.5rem;
+      background: #fdf0ec; border: 1px solid var(--terracotta);
+      border-radius: 2px; padding: 0.75rem 1rem;
+      font-size: 0.9rem; color: var(--terracotta); margin-bottom: 1.5rem;
     }
-    label {
-      display: block;
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--mid);
-      margin-bottom: 0.5rem;
-    }
+    label { display: block; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid); margin-bottom: 0.5rem; }
     input {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--sand);
-      border-radius: 2px;
-      background: white;
-      font-family: var(--sans);
-      font-size: 1rem;
-      color: var(--deep);
-      margin-bottom: 1.25rem;
-      outline: none;
-      transition: border-color 0.2s;
+      width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--sand);
+      border-radius: 2px; background: white; font-family: var(--sans);
+      font-size: 1rem; color: var(--deep); margin-bottom: 1.25rem;
+      outline: none; transition: border-color 0.2s;
     }
     input:focus { border-color: var(--terracotta); }
     button {
-      width: 100%;
-      padding: 0.875rem;
-      background: var(--terracotta);
-      color: white;
-      border: none;
-      border-radius: 2px;
-      font-family: var(--sans);
-      font-size: 1rem;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      transition: background 0.2s;
+      width: 100%; padding: 0.875rem; background: var(--terracotta);
+      color: white; border: none; border-radius: 2px; font-family: var(--sans);
+      font-size: 1rem; letter-spacing: 0.05em; cursor: pointer; transition: background 0.2s;
     }
     button:hover { background: var(--deep); }
-    .footer-note {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: 0.8rem;
-      color: var(--light);
-    }
+    .footer-note { text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: var(--light); }
   </style>
 </head>
 <body>
@@ -129,7 +96,7 @@ const error = Astro.url.searchParams.get('error');
       </div>
     )}
 
-    <form method="POST" action="/api/auth/login">
+    <form method="POST">
       <label for="handle">Your handle</label>
       <input type="text" id="handle" name="handle" placeholder="e.g. anand" autocomplete="username" required />
 
