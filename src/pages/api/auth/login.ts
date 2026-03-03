@@ -2,20 +2,29 @@
 import type { APIRoute } from 'astro';
 import { validateCredentials, createSession } from '../../../lib/auth';
 
-export const POST: APIRoute = async ({ request, cookies, redirect }) => {
-  const form = await request.formData();
-  const handle = (form.get('handle') as string || '').trim().toLowerCase();
-  const passphrase = (form.get('passphrase') as string || '').trim();
+export const POST: APIRoute = async ({ request, cookies }) => {
+  let handle = '';
+  let passphrase = '';
 
-  if (!handle || !passphrase) {
-    return redirect('/contribute/login?error=invalid');
+  try {
+    const body = await request.json();
+    handle = (body.handle || '').trim().toLowerCase();
+    passphrase = (body.passphrase || '').trim();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid request' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  const valid = validateCredentials(handle, passphrase);
-  if (!valid) {
-    return redirect('/contribute/login?error=invalid');
+  if (!handle || !passphrase || !validateCredentials(handle, passphrase)) {
+    return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
+      status: 401, headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   await createSession(cookies, handle);
-  return redirect('/contribute');
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200, headers: { 'Content-Type': 'application/json' }
+  });
 };

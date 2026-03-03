@@ -1,26 +1,11 @@
 ---
 // src/pages/contribute/login.astro
-// Handles both GET (show form) and POST (process login) in one file.
-// Avoids cross-site POST issue by not using a separate API route.
-import { validateCredentials, createSession, getSession } from '../../lib/auth';
+import { getSession } from '../../lib/auth';
 
 const session = await getSession(Astro.cookies);
 if (session) return Astro.redirect('/contribute');
 
-let error = Astro.url.searchParams.get('error');
-
-if (Astro.request.method === 'POST') {
-  const form = await Astro.request.formData();
-  const handle = (form.get('handle') as string || '').trim().toLowerCase();
-  const passphrase = (form.get('passphrase') as string || '').trim();
-
-  if (handle && passphrase && validateCredentials(handle, passphrase)) {
-    await createSession(Astro.cookies, handle);
-    return Astro.redirect('/contribute');
-  } else {
-    error = 'invalid';
-  }
-}
+const error = Astro.url.searchParams.get('error');
 ---
 
 <!doctype html>
@@ -49,13 +34,7 @@ if (Astro.request.method === 'POST') {
       font-family: var(--sans);
       padding: 2rem;
     }
-    .card {
-      background: var(--cream);
-      border-radius: 4px;
-      padding: 3rem;
-      width: 100%;
-      max-width: 420px;
-    }
+    .card { background: var(--cream); border-radius: 4px; padding: 3rem; width: 100%; max-width: 420px; }
     .logo { text-align: center; margin-bottom: 2.5rem; }
     .logo-mark { font-size: 2rem; margin-bottom: 0.5rem; }
     .logo-title { font-family: var(--serif); font-size: 1.4rem; color: var(--deep); margin-bottom: 0.25rem; }
@@ -63,8 +42,9 @@ if (Astro.request.method === 'POST') {
     .error {
       background: #fdf0ec; border: 1px solid var(--terracotta);
       border-radius: 2px; padding: 0.75rem 1rem;
-      font-size: 0.9rem; color: var(--terracotta); margin-bottom: 1.5rem;
+      font-size: 0.9rem; color: var(--terracotta); margin-bottom: 1.5rem; display: none;
     }
+    .error.visible { display: block; }
     label { display: block; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid); margin-bottom: 0.5rem; }
     input {
       width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--sand);
@@ -76,9 +56,10 @@ if (Astro.request.method === 'POST') {
     button {
       width: 100%; padding: 0.875rem; background: var(--terracotta);
       color: white; border: none; border-radius: 2px; font-family: var(--sans);
-      font-size: 1rem; letter-spacing: 0.05em; cursor: pointer; transition: background 0.2s;
+      font-size: 1rem; cursor: pointer; transition: background 0.2s;
     }
-    button:hover { background: var(--deep); }
+    button:hover:not(:disabled) { background: var(--deep); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
     .footer-note { text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: var(--light); }
   </style>
 </head>
@@ -90,23 +71,67 @@ if (Astro.request.method === 'POST') {
       <p class="logo-sub">Yatri Portal</p>
     </div>
 
-    {error && (
-      <div class="error">
-        {error === 'invalid' ? 'Invalid handle or passphrase.' : 'Please log in to continue.'}
-      </div>
-    )}
+    <div class="error" id="error-msg">Invalid handle or passphrase.</div>
 
-    <form method="POST">
+    <div>
       <label for="handle">Your handle</label>
-      <input type="text" id="handle" name="handle" placeholder="e.g. anand" autocomplete="username" required />
+      <input type="text" id="handle" placeholder="e.g. anand" autocomplete="username" />
 
       <label for="passphrase">Passphrase</label>
-      <input type="password" id="passphrase" name="passphrase" autocomplete="current-password" required />
+      <input type="password" id="passphrase" autocomplete="current-password" />
 
-      <button type="submit">Enter the portal →</button>
-    </form>
+      <button id="login-btn">Enter the portal →</button>
+    </div>
 
     <p class="footer-note">Invite-only. Contact admin if you need access.</p>
   </div>
+
+  <script>
+    const btn = document.getElementById('login-btn');
+    const errorEl = document.getElementById('error-msg');
+
+    // Show error if redirected back with ?error=
+    if (window.location.search.includes('error')) {
+      errorEl.classList.add('visible');
+    }
+
+    async function doLogin() {
+      const handle = document.getElementById('handle').value.trim().toLowerCase();
+      const passphrase = document.getElementById('passphrase').value.trim();
+
+      if (!handle || !passphrase) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      errorEl.classList.remove('visible');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ handle, passphrase }),
+        });
+
+        if (res.ok) {
+          window.location.href = '/contribute';
+        } else {
+          errorEl.classList.add('visible');
+          btn.disabled = false;
+          btn.textContent = 'Enter the portal →';
+        }
+      } catch (err) {
+        errorEl.textContent = 'Network error — please try again.';
+        errorEl.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Enter the portal →';
+      }
+    }
+
+    btn.addEventListener('click', doLogin);
+
+    document.getElementById('passphrase').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
 </body>
 </html>
