@@ -1,0 +1,145 @@
+---
+// src/pages/contribute/login.astro
+// Redirect if already logged in
+import { getSession } from '../../lib/auth';
+
+const session = await getSession(Astro.cookies);
+if (session) return Astro.redirect('/contribute');
+
+const error = Astro.url.searchParams.get('error');
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Yatri Login — Vedic Journeys</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #faf7f2; --warm: #f0ebe0; --sand: #d4c5a9;
+      --terracotta: #b5673d; --deep: #2c1810; --mid: #6b4c38; --light: #9a7b68;
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans: 'Crimson Pro', Palatino, Georgia, serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--deep);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--sans);
+      padding: 2rem;
+    }
+    .card {
+      background: var(--cream);
+      border-radius: 4px;
+      padding: 3rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .logo-mark {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .logo-title {
+      font-family: var(--serif);
+      font-size: 1.4rem;
+      color: var(--deep);
+      margin-bottom: 0.25rem;
+    }
+    .logo-sub {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--light);
+    }
+    .error {
+      background: #fdf0ec;
+      border: 1px solid var(--terracotta);
+      border-radius: 2px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: var(--terracotta);
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mid);
+      margin-bottom: 0.5rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--sand);
+      border-radius: 2px;
+      background: white;
+      font-family: var(--sans);
+      font-size: 1rem;
+      color: var(--deep);
+      margin-bottom: 1.25rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--terracotta); }
+    button {
+      width: 100%;
+      padding: 0.875rem;
+      background: var(--terracotta);
+      color: white;
+      border: none;
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: var(--deep); }
+    .footer-note {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--light);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-mark">✦</div>
+      <h1 class="logo-title">Vedic Journeys</h1>
+      <p class="logo-sub">Yatri Portal</p>
+    </div>
+
+    {error && (
+      <div class="error">
+        {error === 'invalid' ? 'Invalid handle or passphrase.' : 'Please log in to continue.'}
+      </div>
+    )}
+
+    <form method="POST" action="/api/auth/login">
+      <label for="handle">Your handle</label>
+      <input type="text" id="handle" name="handle" placeholder="e.g. anand" autocomplete="username" required />
+
+      <label for="passphrase">Passphrase</label>
+      <input type="password" id="passphrase" name="passphrase" autocomplete="current-password" required />
+
+      <button type="submit">Enter the portal →</button>
+    </form>
+
+    <p class="footer-note">Invite-only. Contact admin if you need access.</p>
+  </div>
+</body>
+</html>
