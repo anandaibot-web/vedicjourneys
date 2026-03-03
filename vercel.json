@@ -1,0 +1,13 @@
+cat > ~/vedicjourneys-site/vedicjourneys/vercel.json << 'EOF'
+{
+  "framework": "astro",
+  "headers": [
+    {
+      "source": "/contribute/(.*)",
+      "headers": [
+        { "key": "x-vercel-skip-csrf", "value": "1" }
+      ]
+    }
+  ]
+}
+EOF
