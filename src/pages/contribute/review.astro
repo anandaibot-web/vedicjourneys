@@ -175,10 +175,10 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
               </div>
             </div>
             <div class="post-actions">
-              <button class="btn btn-approve" onclick={"approvePost('" + post.slug + "')"}>
+              <button class="btn btn-approve" data-action="approve" data-slug={post.slug}>
                 ✓ Approve
               </button>
-              <button class="btn btn-reject" onclick={"rejectPost('" + post.slug + "')"}>
+              <button class="btn btn-reject" data-action="reject" data-slug={post.slug}>
                 ✕ Delete
               </button>
             </div>
@@ -214,8 +214,8 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
             </span>
             <div class="post-actions">
               {post.visibility !== 'public'
-                ? <button class="btn btn-public" onclick={"setVisibility('" + post.slug + "', 'public')"}> Make Public</button>
-                : <button class="btn btn-unlisted" onclick={"setVisibility('" + post.slug + "', 'unlisted')"}> Make Unlisted</button>
+                ? <button class="btn btn-public" data-action="visibility" data-slug={post.slug} data-visibility="public">Make Public</button>
+                : <button class="btn btn-unlisted" data-action="visibility" data-slug={post.slug} data-visibility="unlisted">Make Unlisted</button>
               }
               <a href={"/u/" + handle + "/" + post.slug} target="_blank" class="btn btn-preview">Preview →</a>
             </div>
@@ -235,72 +235,75 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
       setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    async function approvePost(slug) {
-      const btn = document.querySelector(`#review-${slug} .btn-approve`);
-      btn.disabled = true;
-      btn.textContent = 'Approving…';
-      try {
-        const res = await fetch('/api/contribute/review', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'approve', slug }),
-        });
-        const data = await res.json();
-        if (res.ok) {
+    async function apiCall(payload) {
+      const res = await fetch('/api/contribute/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return { ok: res.ok, data: await res.json() };
+    }
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      const slug = btn.dataset.slug;
+      const visibility = btn.dataset.visibility;
+
+      if (action === 'approve') {
+        btn.disabled = true;
+        btn.textContent = 'Approving…';
+        const { ok, data } = await apiCall({ action: 'approve', slug });
+        if (ok) {
           document.getElementById('review-' + slug)?.remove();
           showToast('✓ Post approved and published!');
         } else {
-          showToast('Error: ' + data.error);
+          showToast('Error: ' + (data.error || 'unknown'));
           btn.disabled = false;
           btn.textContent = '✓ Approve';
         }
-      } catch (e) {
-        showToast('Network error');
-        btn.disabled = false;
-        btn.textContent = '✓ Approve';
       }
-    }
 
-    async function rejectPost(slug) {
-      if (!confirm('Delete this draft permanently?')) return;
-      try {
-        const res = await fetch('/api/contribute/review', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'reject', slug }),
-        });
-        if (res.ok) {
+      if (action === 'reject') {
+        if (!confirm('Delete this draft permanently?')) return;
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+        const { ok } = await apiCall({ action: 'reject', slug });
+        if (ok) {
           document.getElementById('review-' + slug)?.remove();
           showToast('Draft deleted.');
+        } else {
+          btn.disabled = false;
+          btn.textContent = '✕ Delete';
         }
-      } catch (e) { showToast('Network error'); }
-    }
+      }
 
-    async function setVisibility(slug, visibility) {
-      const btn = document.querySelector(`#pub-${slug} .btn-public, #pub-${slug} .btn-unlisted`);
-      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-      try {
-        const res = await fetch('/api/contribute/review', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'visibility', slug, visibility }),
-        });
-        if (res.ok) {
+      if (action === 'visibility') {
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        const { ok } = await apiCall({ action: 'visibility', slug, visibility });
+        if (ok) {
+          // Update badge
           const badge = document.getElementById('vis-' + slug);
           if (badge) {
             badge.textContent = visibility === 'public' ? '🌐 Public' : '🔒 Unlisted';
             badge.className = 'vis-badge ' + (visibility === 'public' ? 'vis-public' : 'vis-unlisted');
           }
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = visibility === 'public' ? 'Make Unlisted' : 'Make Public';
-            btn.className = 'btn ' + (visibility === 'public' ? 'btn-unlisted' : 'btn-public');
-            btn.onclick = () => setVisibility(slug, visibility === 'public' ? 'unlisted' : 'public');
-          }
+          // Flip the button to opposite action
+          const newVis = visibility === 'public' ? 'unlisted' : 'public';
+          btn.disabled = false;
+          btn.textContent = visibility === 'public' ? 'Make Unlisted' : 'Make Public';
+          btn.className = 'btn ' + (visibility === 'public' ? 'btn-unlisted' : 'btn-public');
+          btn.dataset.visibility = newVis;
           showToast(visibility === 'public' ? '🌐 Post is now public!' : '🔒 Post is now unlisted.');
+        } else {
+          btn.disabled = false;
+          btn.textContent = visibility === 'public' ? 'Make Public' : 'Make Unlisted';
         }
-      } catch (e) { showToast('Network error'); }
-    }
+      }
+    });
   </script>
 </body>
 </html>
