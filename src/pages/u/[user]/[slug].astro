@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import { marked } from 'marked';
 import Header from '../../../components/Header.astro';
 import Footer from '../../../components/Footer.astro';
+import { getYatri } from '../../../lib/yatris';
 
 const { user, slug } = Astro.params;
 
@@ -28,6 +29,7 @@ const noindex = frontmatter.visibility !== "public";
 const siteUrl = "https://vedicjourneys.vercel.app";
 const canonicalUrl = `${siteUrl}/u/${user}/${slug}`;
 const heroImage = frontmatter.heroImage || "";
+const yatri = getYatri(user);
 const pubDate = frontmatter.pubDate
   ? new Date(frontmatter.pubDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
   : "";
@@ -60,6 +62,30 @@ const pubDate = frontmatter.pubDate
       article blockquote { border-left: 3px solid #c8aa6e; margin: 1.5rem 0; padding: 0.5rem 0 0.5rem 1.25rem; color: #555; font-style: italic; }
       .badge { display: inline-block; background: #f0ebe0; color: #666; font-size: 0.72rem; font-family: sans-serif; padding: 0.2rem 0.6rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; }
       .unlisted-notice { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; font-family: sans-serif; color: #795548; margin-bottom: 1.5rem; }
+	  .byline {
+    margin: 0.75rem 0 2rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e8e3d8;
+  }
+  .byline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: #555;
+    font-family: sans-serif;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+  .byline-link:hover { color: #b5673d; }
+  .byline-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e8e3d8;
+  }
+  .byline-link strong { color: #b5673d; }
     </style>
   </head>
   <body>
@@ -77,13 +103,24 @@ const pubDate = frontmatter.pubDate
       )}
       <h1>{frontmatter.title}</h1>
       <div class="meta">
-        {frontmatter.location && <span>📍 {frontmatter.location}</span>}
-        {pubDate && <span>📅 {pubDate}</span>}
-        {frontmatter.readTime && <span>⏱ {frontmatter.readTime} min read</span>}
-        {(frontmatter.keywords || []).slice(0, 3).map((kw: string) => (
-          <span class="badge">{kw}</span>
-        ))}
-      </div>
+    {frontmatter.location && <span>📍 {frontmatter.location}</span>}
+    {pubDate && <span>📅 {pubDate}</span>}
+    {frontmatter.readTime && <span>⏱ {frontmatter.readTime} min read</span>}
+    {(frontmatter.keywords || []).slice(0, 3).map((kw: string) => (
+      <span class="badge">{kw}</span>
+    ))}
+  </div>
+  <div class="byline">
+    <a href={"/u/" + user} class="byline-link">
+      <img
+        src={yatri.avatar}
+        alt={yatri.displayName}
+        class="byline-avatar"
+        onerror="this.style.display='none'"
+      />
+      <span>By <strong>{yatri.displayName}</strong></span>
+    </a>
+  </div>
       <article set:html={htmlContent} />
     </div>
 	<Footer />

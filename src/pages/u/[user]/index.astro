@@ -1,0 +1,239 @@
+---
+// src/pages/u/[user]/index.astro — SSR yatri profile page
+import { getCollection } from 'astro:content';
+import { getYatri } from '../../../lib/yatris';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import PostCard from '../../../components/PostCard.astro';
+
+const { user } = Astro.params;
+const yatri = getYatri(user);
+
+const allPosts = (await getCollection('blog'))
+  .filter(p => !p.id.startsWith('_review'))
+  .filter(p => p.data.visibility !== 'private')
+  .filter(p => p.data.user === user)
+  .sort((a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf());
+
+if (allPosts.length === 0 && !Object.keys((await import('../../../lib/yatris')).YATRIS).includes(user)) {
+  return new Response("Not found", { status: 404 });
+}
+
+const locations = [...new Set(allPosts.map(p => p.data.location).filter(Boolean))];
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>{yatri.displayName} — Vedic Journeys</title>
+  <meta name="description" content={yatri.bio || ("Travel posts by " + yatri.displayName + " on Vedic Journeys.")} />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #faf7f2; --warm: #f0ebe0; --sand: #d4c5a9;
+      --terracotta: #b5673d; --deep: #2c1810; --mid: #6b4c38; --light: #9a7b68;
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans: 'Crimson Pro', Palatino, Georgia, serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--cream); color: var(--deep); font-family: var(--sans); }
+
+    /* ── Profile header ── */
+    .profile-header {
+      background: var(--deep);
+      padding: 4rem 2rem 3rem;
+    }
+    .profile-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+    .avatar-wrap {
+      flex-shrink: 0;
+    }
+    .avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--terracotta);
+      background: var(--mid);
+    }
+    .avatar-placeholder {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--mid);
+      border: 3px solid var(--terracotta);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: var(--sand);
+      font-family: var(--serif);
+    }
+    .profile-info { flex: 1; min-width: 240px; }
+    .profile-name {
+      font-family: var(--serif);
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      color: #fff;
+      margin-bottom: 0.4rem;
+    }
+    .profile-handle {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 1rem;
+    }
+    .profile-bio {
+      color: var(--sand);
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 55ch;
+      margin-bottom: 1.25rem;
+    }
+    .profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+      font-size: 0.85rem;
+      color: var(--light);
+    }
+    .profile-meta span { display: flex; align-items: center; gap: 0.35rem; }
+
+    /* ── Destinations strip ── */
+    .destinations {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 2rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .dest-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--light);
+      margin-right: 0.5rem;
+    }
+    .dest-tag {
+      padding: 0.3rem 0.8rem;
+      background: var(--warm);
+      border: 1px solid var(--sand);
+      border-radius: 2px;
+      font-size: 0.8rem;
+      color: var(--mid);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .dest-tag:hover { background: var(--terracotta); border-color: var(--terracotta); color: white; }
+
+    /* ── Posts section ── */
+    .posts-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 5rem;
+    }
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--sand);
+    }
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+    .empty {
+      text-align: center;
+      padding: 4rem 0;
+      color: var(--light);
+      font-style: italic;
+    }
+
+    @media (max-width: 900px) { .posts-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 580px) {
+      .posts-grid { grid-template-columns: 1fr; }
+      .profile-inner { gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <Header />
+
+  <div class="profile-header">
+    <div class="profile-inner">
+      <div class="avatar-wrap">
+        <img
+          src={yatri.avatar}
+          alt={yatri.displayName}
+          class="avatar"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        />
+        <div class="avatar-placeholder" style="display:none;">
+          {yatri.displayName.charAt(0)}
+        </div>
+      </div>
+      <div class="profile-info">
+        <h1 class="profile-name">{yatri.displayName}</h1>
+        <p class="profile-handle">@{yatri.handle}</p>
+        {yatri.bio && <p class="profile-bio">{yatri.bio}</p>}
+        <div class="profile-meta">
+          {yatri.location && <span>📍 {yatri.location}</span>}
+          <span>✦ {allPosts.length} post{allPosts.length !== 1 ? 's' : ''}</span>
+          {locations.length > 0 && <span>🗺️ {locations.length} destination{locations.length !== 1 ? 's' : ''}</span>}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {locations.length > 0 && (
+    <div class="destinations">
+      <span class="dest-label">Destinations</span>
+      {locations.map(loc => (
+        <a
+          href={"/tag/" + loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}
+          class="dest-tag"
+        >
+          {loc}
+        </a>
+      ))}
+    </div>
+  )}
+
+  <section class="posts-section">
+    <p class="section-label">All journeys by {yatri.displayName}</p>
+    {allPosts.length === 0
+      ? <p class="empty">No posts yet. Check back soon.</p>
+      : (
+        <div class="posts-grid">
+          {allPosts.map(post => <PostCard post={post} />)}
+        </div>
+      )
+    }
+  </section>
+
+  <Footer />
+</body>
+</html>
