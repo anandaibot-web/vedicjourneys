@@ -29,6 +29,13 @@ const tagPosts = allPosts
 const allLocations = [...new Set(
   allPosts.map(p => p.data.location).filter(l => l && !l.startsWith('Trip-'))
 )].sort();
+
+// Pre-compute slugs to avoid template literals in JSX attributes
+const locationLinks = allLocations.map(loc => ({
+  loc,
+  slug: loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+  active: loc === location,
+}));
 ---
 
 <!doctype html>
@@ -37,7 +44,7 @@ const allLocations = [...new Set(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width" />
   <title>{location} — Vedic Journeys</title>
-  <meta name="description" content={`Travel posts from ${location} — reflections, pilgrimage notes, and Advaita observations.`} />
+  <meta name="description" content={"Travel posts from " + location + " — reflections, pilgrimage notes, and Advaita observations."} />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
@@ -49,63 +56,26 @@ const allLocations = [...new Set(
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--cream); color: var(--deep); font-family: var(--sans); }
-
-    .page-header {
-      background: var(--deep);
-      padding: 4rem 2rem 3rem;
-      text-align: center;
-    }
-    .breadcrumb {
-      font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--sand); margin-bottom: 1.5rem; opacity: 0.7;
-    }
+    .page-header { background: var(--deep); padding: 4rem 2rem 3rem; text-align: center; }
+    .breadcrumb { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sand); margin-bottom: 1.5rem; opacity: 0.7; }
     .breadcrumb a { color: var(--sand); text-decoration: none; }
     .breadcrumb a:hover { opacity: 1; }
-    .page-title {
-      font-family: var(--serif); font-size: clamp(1.8rem, 4vw, 3rem);
-      color: #fff; margin-bottom: 0.5rem;
-    }
+    .page-title { font-family: var(--serif); font-size: clamp(1.8rem, 4vw, 3rem); color: #fff; margin-bottom: 0.5rem; }
     .page-subtitle { color: var(--sand); font-size: 0.9rem; opacity: 0.7; }
-
-    .content-wrap {
-      max-width: 1200px; margin: 0 auto;
-      padding: 3rem 2rem 5rem;
-      display: grid;
-      grid-template-columns: 1fr 220px;
-      gap: 4rem;
-      align-items: start;
-    }
-    .posts-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2rem;
-    }
-    .empty {
-      grid-column: 1/-1; text-align: center;
-      padding: 4rem 0; color: var(--light);
-    }
-
-    .sidebar-title {
-      font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase;
-      color: var(--terracotta); margin-bottom: 1.25rem;
-    }
+    .content-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 5rem; display: grid; grid-template-columns: 1fr 220px; gap: 4rem; align-items: start; }
+    .posts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .empty { grid-column: 1/-1; text-align: center; padding: 4rem 0; color: var(--light); }
+    .sidebar-title { font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--terracotta); margin-bottom: 1.25rem; }
     .sidebar-tags { display: flex; flex-direction: column; gap: 0.4rem; }
-    .sidebar-tag {
-      padding: 0.5rem 0.75rem; border-radius: 2px; text-decoration: none;
-      font-size: 0.85rem; color: var(--mid); transition: all 0.15s;
-      border: 1px solid transparent;
-    }
+    .sidebar-tag { padding: 0.5rem 0.75rem; border-radius: 2px; text-decoration: none; font-size: 0.85rem; color: var(--mid); transition: all 0.15s; border: 1px solid transparent; }
     .sidebar-tag:hover { background: var(--warm); border-color: var(--sand); }
     .sidebar-tag.current { background: var(--terracotta); color: white; }
-
     @media (max-width: 860px) {
       .content-wrap { grid-template-columns: 1fr; gap: 2rem; }
       .sidebar { order: -1; }
       .sidebar-tags { flex-direction: row; flex-wrap: wrap; }
     }
-    @media (max-width: 580px) {
-      .posts-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 580px) { .posts-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -132,18 +102,11 @@ const allLocations = [...new Set(
     <aside class="sidebar">
       <p class="sidebar-title">Other destinations</p>
       <div class="sidebar-tags">
-        {allLocations.map(loc => {
-		  const locSlug = loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-		  const isActive = loc === location;
-		  return (
-			
-			  href={`/tag/${locSlug}`}
-			  class={isActive ? 'sidebar-tag current' : 'sidebar-tag'}
-			>
-			  {loc}
-			</a>
-		  );
-		})}
+        {locationLinks.map(({ loc, slug, active }) => (
+          <a href={"/tag/" + slug} class={active ? 'sidebar-tag current' : 'sidebar-tag'}>
+            {loc}
+          </a>
+        ))}
       </div>
     </aside>
   </div>
