@@ -1,0 +1,306 @@
+---
+// src/pages/contribute/review.astro
+// Review flagged posts + manage visibility of published posts
+import { getSession } from '../../lib/auth';
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
+
+const session = await getSession(Astro.cookies);
+if (!session) return Astro.redirect('/contribute/login');
+const handle = session.handle;
+
+const BLOG_ROOT = path.join(process.cwd(), 'src/content/blog');
+const REVIEW_DIR = path.join(BLOG_ROOT, '_review', handle);
+const PUBLISHED_DIR = path.join(BLOG_ROOT, handle);
+
+function readPosts(dir: string) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter(f => f.endsWith('.md'))
+    .map(f => {
+      const raw = fs.readFileSync(path.join(dir, f), 'utf8');
+      const { data } = matter(raw);
+      return { slug: f.replace('.md', ''), ...data };
+    })
+    .sort((a: any, b: any) => new Date(b.pubDate).valueOf() - new Date(a.pubDate).valueOf());
+}
+
+const reviewPosts = readPosts(REVIEW_DIR);
+const publishedPosts = readPosts(PUBLISHED_DIR);
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Review Posts — Vedic Journeys</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #faf7f2; --warm: #f0ebe0; --sand: #d4c5a9;
+      --terracotta: #b5673d; --deep: #2c1810; --mid: #6b4c38; --light: #9a7b68;
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans: 'Crimson Pro', Palatino, Georgia, serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--cream); color: var(--deep); font-family: var(--sans); min-height: 100vh; }
+
+    /* Nav */
+    .nav { background: var(--deep); padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--serif); color: #fff; text-decoration: none; font-size: 1rem; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a { color: var(--sand); text-decoration: none; font-size: 0.85rem; font-family: var(--sans); }
+    .nav-links a:hover { color: #fff; }
+    .nav-links a.active { color: var(--terracotta); }
+
+    /* Page */
+    .page { max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .page-title { font-family: var(--serif); font-size: 2rem; margin-bottom: 0.5rem; }
+    .page-sub { color: var(--light); font-size: 0.95rem; margin-bottom: 3rem; }
+
+    /* Section */
+    .section { margin-bottom: 3.5rem; }
+    .section-header {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--sand);
+    }
+    .section-title { font-family: var(--serif); font-size: 1.3rem; }
+    .badge {
+      font-size: 0.7rem; font-family: sans-serif; padding: 0.2rem 0.6rem;
+      border-radius: 999px; letter-spacing: 0.05em;
+    }
+    .badge-review { background: #fff3cd; color: #856404; }
+    .badge-published { background: #d1e7dd; color: #0a3622; }
+    .empty { color: var(--light); font-style: italic; padding: 1.5rem 0; }
+
+    /* Post row */
+    .post-row {
+      display: flex; align-items: flex-start; gap: 1.5rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--warm);
+    }
+    .post-row:last-child { border-bottom: none; }
+    .post-thumb {
+      width: 80px; height: 60px; object-fit: cover;
+      border-radius: 2px; flex-shrink: 0; background: var(--warm);
+    }
+    .post-info { flex: 1; min-width: 0; }
+    .post-title { font-family: var(--serif); font-size: 1rem; margin-bottom: 0.25rem; line-height: 1.3; }
+    .post-meta { font-size: 0.8rem; color: var(--light); display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .quality-score { font-size: 0.75rem; font-family: sans-serif; }
+    .score-ok { color: #198754; }
+    .score-warn { color: #856404; }
+    .post-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0; }
+
+    /* Buttons */
+    .btn {
+      padding: 0.4rem 0.9rem; border: none; border-radius: 2px;
+      font-family: var(--sans); font-size: 0.85rem; cursor: pointer;
+      transition: all 0.2s; text-decoration: none; display: inline-block;
+    }
+    .btn-approve { background: #198754; color: white; }
+    .btn-approve:hover { background: #146c43; }
+    .btn-reject { background: #dc3545; color: white; }
+    .btn-reject:hover { background: #b02a37; }
+    .btn-public { background: var(--terracotta); color: white; }
+    .btn-public:hover { background: var(--deep); }
+    .btn-unlisted { background: var(--warm); color: var(--mid); border: 1px solid var(--sand); }
+    .btn-unlisted:hover { background: var(--sand); }
+    .btn-preview { background: transparent; color: var(--mid); border: 1px solid var(--sand); }
+    .btn-preview:hover { border-color: var(--mid); }
+    .vis-badge {
+      font-size: 0.7rem; font-family: sans-serif; padding: 0.2rem 0.5rem;
+      border-radius: 999px; align-self: center;
+    }
+    .vis-public { background: #d1e7dd; color: #0a3622; }
+    .vis-unlisted { background: #fff3cd; color: #856404; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--deep); color: white;
+      padding: 0.75rem 1.25rem; border-radius: 4px;
+      font-family: var(--sans); font-size: 0.9rem;
+      display: none; z-index: 999;
+    }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">✦ Vedic Journeys</a>
+    <div class="nav-links">
+      <a href="/contribute">Upload</a>
+      <a href="/contribute/review" class="active">Review</a>
+      <a href={"/u/" + handle}>My Profile</a>
+      <a href="/api/auth/logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <h1 class="page-title">Post Manager</h1>
+    <p class="page-sub">Review flagged drafts and manage visibility of published posts.</p>
+
+    <!-- Flagged / Review section -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Needs Review</h2>
+        <span class="badge badge-review">{reviewPosts.length} post{reviewPosts.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {reviewPosts.length === 0
+        ? <p class="empty">No posts awaiting review. ✓</p>
+        : reviewPosts.map((post: any) => (
+          <div class="post-row" id={"review-" + post.slug}>
+            {post.heroImage && (
+              <img src={post.heroImage} alt={post.title} class="post-thumb" />
+            )}
+            <div class="post-info">
+              <p class="post-title">{post.title}</p>
+              <div class="post-meta">
+                {post.location && <span>📍 {post.location}</span>}
+                {post.pubDate && <span>📅 {new Date(post.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>}
+                {post.qualityScore && (
+                  <span class={"quality-score " + (post.qualityScore >= 90 ? 'score-ok' : 'score-warn')}>
+                    Score: {post.qualityScore}/100
+                  </span>
+                )}
+              </div>
+            </div>
+            <div class="post-actions">
+              <button class="btn btn-approve" onclick={"approvePost('" + post.slug + "')"}>
+                ✓ Approve
+              </button>
+              <button class="btn btn-reject" onclick={"rejectPost('" + post.slug + "')"}>
+                ✕ Delete
+              </button>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Published posts section -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Published Posts</h2>
+        <span class="badge badge-published">{publishedPosts.length} post{publishedPosts.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {publishedPosts.length === 0
+        ? <p class="empty">No published posts yet.</p>
+        : publishedPosts.map((post: any) => (
+          <div class="post-row" id={"pub-" + post.slug}>
+            {post.heroImage && (
+              <img src={post.heroImage} alt={post.title} class="post-thumb" />
+            )}
+            <div class="post-info">
+              <p class="post-title">{post.title}</p>
+              <div class="post-meta">
+                {post.location && <span>📍 {post.location}</span>}
+                {post.pubDate && <span>📅 {new Date(post.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>}
+                {post.readTime && <span>⏱ {post.readTime} min read</span>}
+              </div>
+            </div>
+            <span class={"vis-badge " + (post.visibility === 'public' ? 'vis-public' : 'vis-unlisted')} id={"vis-" + post.slug}>
+              {post.visibility === 'public' ? '🌐 Public' : '🔒 Unlisted'}
+            </span>
+            <div class="post-actions">
+              {post.visibility !== 'public'
+                ? <button class="btn btn-public" onclick={"setVisibility('" + post.slug + "', 'public')"}> Make Public</button>
+                : <button class="btn btn-unlisted" onclick={"setVisibility('" + post.slug + "', 'unlisted')"}> Make Unlisted</button>
+              }
+              <a href={"/u/" + handle + "/" + post.slug} target="_blank" class="btn btn-preview">Preview →</a>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    async function approvePost(slug) {
+      const btn = document.querySelector(`#review-${slug} .btn-approve`);
+      btn.disabled = true;
+      btn.textContent = 'Approving…';
+      try {
+        const res = await fetch('/api/contribute/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve', slug }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('review-' + slug)?.remove();
+          showToast('✓ Post approved and published!');
+        } else {
+          showToast('Error: ' + data.error);
+          btn.disabled = false;
+          btn.textContent = '✓ Approve';
+        }
+      } catch (e) {
+        showToast('Network error');
+        btn.disabled = false;
+        btn.textContent = '✓ Approve';
+      }
+    }
+
+    async function rejectPost(slug) {
+      if (!confirm('Delete this draft permanently?')) return;
+      try {
+        const res = await fetch('/api/contribute/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reject', slug }),
+        });
+        if (res.ok) {
+          document.getElementById('review-' + slug)?.remove();
+          showToast('Draft deleted.');
+        }
+      } catch (e) { showToast('Network error'); }
+    }
+
+    async function setVisibility(slug, visibility) {
+      const btn = document.querySelector(`#pub-${slug} .btn-public, #pub-${slug} .btn-unlisted`);
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+      try {
+        const res = await fetch('/api/contribute/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'visibility', slug, visibility }),
+        });
+        if (res.ok) {
+          const badge = document.getElementById('vis-' + slug);
+          if (badge) {
+            badge.textContent = visibility === 'public' ? '🌐 Public' : '🔒 Unlisted';
+            badge.className = 'vis-badge ' + (visibility === 'public' ? 'vis-public' : 'vis-unlisted');
+          }
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = visibility === 'public' ? 'Make Unlisted' : 'Make Public';
+            btn.className = 'btn ' + (visibility === 'public' ? 'btn-unlisted' : 'btn-public');
+            btn.onclick = () => setVisibility(slug, visibility === 'public' ? 'unlisted' : 'public');
+          }
+          showToast(visibility === 'public' ? '🌐 Post is now public!' : '🔒 Post is now unlisted.');
+        }
+      } catch (e) { showToast('Network error'); }
+    }
+  </script>
+</body>
+</html>
