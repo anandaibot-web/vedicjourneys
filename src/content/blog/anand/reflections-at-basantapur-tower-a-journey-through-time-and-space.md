@@ -4,7 +4,7 @@ description: "Explore the vibrant atmosphere of Basantapur Tower, a reflection o
 pubDate: 2026-01-01
 heroImage: "/blog-images/anand/reflections-at-basantapur-tower-a-journey-through-time-and-space.jpg"
 user: "anand"
-visibility: "public"
+visibility: "unlisted"
 location: ""
 keywords: ["Basantapur Tower","Kathmandu","urban stupa","Hindu temple","spiritual journey"]
 readTime: 5
