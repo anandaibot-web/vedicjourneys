@@ -132,14 +132,18 @@ const allLocations = [...new Set(
     <aside class="sidebar">
       <p class="sidebar-title">Other destinations</p>
       <div class="sidebar-tags">
-        {allLocations.map(loc => (
-          
-            href={`/tag/${loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`}
-            class={`sidebar-tag ${loc === location ? 'current' : ''}`}
-          >
-            {loc}
-          </a>
-        ))}
+        {allLocations.map(loc => {
+		  const locSlug = loc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+		  const isActive = loc === location;
+		  return (
+			
+			  href={`/tag/${locSlug}`}
+			  class={isActive ? 'sidebar-tag current' : 'sidebar-tag'}
+			>
+			  {loc}
+			</a>
+		  );
+		})}
       </div>
     </aside>
   </div>
