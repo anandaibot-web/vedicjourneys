@@ -1,64 +1,50 @@
-cat > ~/vedicjourneys-site/vedicjourneys/src/pages/u/\[user\]/\[slug\].astro << 'EOF'
 ---
-// src/pages/u/[user]/[slug].astro
-// SSR mode — no getStaticPaths(), post is fetched dynamically on each request.
-import { getCollection } from "astro:content";
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
+import { marked } from 'marked';
 
 const { user, slug } = Astro.params;
 
-const posts = await getCollection("blog");
-const post = posts.find((p) => {
-  const parts = p.id.replace(/\.md$/, "").split("/");
-  return parts[0] === user && parts.slice(1).join("/") === slug;
-});
+const BLOG_ROOT = path.join(process.cwd(), 'src/content/blog');
+const mdPath = path.join(BLOG_ROOT, user, `${slug}.md`);
 
-if (!post || post.data.user !== user) {
+if (!fs.existsSync(mdPath)) {
   return new Response("Not found", { status: 404 });
 }
 
-const { Content } = await post.render();
+const raw = fs.readFileSync(mdPath, 'utf8');
+const { data: frontmatter, content } = matter(raw);
 
-const noindex = post.data.visibility !== "public";
+if (frontmatter.user !== user) {
+  return new Response("Not found", { status: 404 });
+}
+
+const htmlContent = marked(content);
+
+const noindex = frontmatter.visibility !== "public";
 const siteUrl = "https://vedicjourneys.vercel.app";
 const canonicalUrl = `${siteUrl}/u/${user}/${slug}`;
-const heroImage = post.data.heroImage || "";
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  headline: post.data.title,
-  description: post.data.description,
-  image: heroImage,
-  datePublished: post.data.pubDate,
-  author: { "@type": "Person", name: user },
-  publisher: { "@type": "Organization", name: "Vedic Journeys", url: siteUrl },
-  keywords: (post.data.keywords || []).join(", "),
-  url: canonicalUrl,
-};
+const heroImage = frontmatter.heroImage || "";
+const pubDate = frontmatter.pubDate
+  ? new Date(frontmatter.pubDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+  : "";
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{post.data.title} | Vedic Journeys</title>
-    {post.data.description && <meta name="description" content={post.data.description} />}
+    <title>{frontmatter.title} | Vedic Journeys</title>
+    {frontmatter.description && <meta name="description" content={frontmatter.description} />}
     <link rel="canonical" href={canonicalUrl} />
     {noindex && <meta name="robots" content="noindex,nofollow" />}
-    {post.data.keywords && post.data.keywords.length > 0 && (
-      <meta name="keywords" content={post.data.keywords.join(", ")} />
-    )}
+    {frontmatter.keywords?.length > 0 && <meta name="keywords" content={frontmatter.keywords.join(", ")} />}
     <meta property="og:type" content="article" />
-    <meta property="og:title" content={post.data.title} />
-    {post.data.description && <meta property="og:description" content={post.data.description} />}
+    <meta property="og:title" content={frontmatter.title} />
+    {frontmatter.description && <meta property="og:description" content={frontmatter.description} />}
     {heroImage && <meta property="og:image" content={heroImage} />}
     <meta property="og:url" content={canonicalUrl} />
-    <meta property="og:site_name" content="Vedic Journeys" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={post.data.title} />
-    {post.data.description && <meta name="twitter:description" content={post.data.description} />}
-    {heroImage && <meta name="twitter:image" content={heroImage} />}
-    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       body { margin: 0; font-family: Georgia, "Times New Roman", serif; background: #fdfcf8; color: #1a1a1a; line-height: 1.75; }
@@ -77,7 +63,7 @@ const jsonLd = {
   <body>
     {heroImage && (
       <div class="hero">
-        <img src={heroImage} alt={post.data.title} loading="eager" />
+        <img src={heroImage} alt={frontmatter.title} loading="eager" />
       </div>
     )}
     <div class="container">
@@ -86,21 +72,16 @@ const jsonLd = {
           🔒 This post is unlisted — only people with the link can see it.
         </div>
       )}
-      <h1>{post.data.title}</h1>
+      <h1>{frontmatter.title}</h1>
       <div class="meta">
-        {post.data.location && <span>📍 {post.data.location}</span>}
-        {post.data.pubDate && (
-          <span>📅 {new Date(post.data.pubDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
-        )}
-        {post.data.readTime && <span>⏱ {post.data.readTime} min read</span>}
-        {(post.data.keywords || []).slice(0, 3).map((kw) => (
+        {frontmatter.location && <span>📍 {frontmatter.location}</span>}
+        {pubDate && <span>📅 {pubDate}</span>}
+        {frontmatter.readTime && <span>⏱ {frontmatter.readTime} min read</span>}
+        {(frontmatter.keywords || []).slice(0, 3).map((kw: string) => (
           <span class="badge">{kw}</span>
         ))}
       </div>
-      <article>
-        <Content />
-      </article>
+      <article set:html={htmlContent} />
     </div>
   </body>
 </html>
-EOF
