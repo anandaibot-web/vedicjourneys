@@ -114,6 +114,76 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
     .btn-unlisted:hover { background: var(--sand); }
     .btn-preview { background: transparent; color: var(--mid); border: 1px solid var(--sand); }
     .btn-preview:hover { border-color: var(--mid); }
+    .btn-edit { background: var(--warm); color: var(--mid); border: 1px solid var(--sand); }
+    .btn-edit:hover { background: var(--sand); border-color: var(--mid); }
+    .btn-remove { background: transparent; color: #dc3545; border: 1px solid #dc3545; }
+    .btn-remove:hover { background: #dc3545; color: white; }
+    .btn-cancel { background: var(--warm); color: var(--mid); border: 1px solid var(--sand); }
+    .btn-cancel:hover { background: var(--sand); }
+    .btn-save { background: var(--deep); color: white; }
+    .btn-save:hover { background: var(--terracotta); }
+
+    /* Edit modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(44,24,16,0.5);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 2rem 1rem;
+    }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+    .modal {
+      background: var(--cream);
+      border-radius: 4px;
+      width: 100%; max-width: 720px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--sand);
+    }
+    .modal-title { font-family: var(--serif); font-size: 1.2rem; }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--light); font-size: 1.1rem; line-height: 1;
+      padding: 0.25rem 0.5rem;
+    }
+    .modal-close:hover { color: var(--deep); }
+    .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .modal-footer {
+      display: flex; gap: 0.75rem; justify-content: flex-end;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--sand);
+    }
+    .modal-field label {
+      display: block;
+      font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--mid); margin-bottom: 0.4rem;
+    }
+    .modal-field input, .modal-field textarea, .modal-field select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--sand); border-radius: 2px;
+      background: white; font-family: var(--sans); font-size: 1rem;
+      color: var(--deep); outline: none;
+    }
+    .modal-field input:focus, .modal-field textarea:focus { border-color: var(--terracotta); }
+    .modal-field textarea { resize: vertical; line-height: 1.6; }
+    .modal-field textarea.mono { font-family: 'Courier New', monospace; font-size: 0.85rem; }
+    .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .modal-vis { display: flex; gap: 0.75rem; }
+    .modal-vis-option {
+      flex: 1; border: 1px solid var(--sand); border-radius: 2px;
+      padding: 0.6rem 0.85rem; cursor: pointer; background: white;
+    }
+    .modal-vis-option:has(input:checked) { border-color: var(--terracotta); background: #fdf8f4; }
+    .modal-vis-option input { display: none; }
+    .modal-vis-label { font-size: 0.85rem; color: var(--deep); }
+    .modal-loading {
+      text-align: center; padding: 3rem; color: var(--light); font-style: italic;
+    }
     .vis-badge {
       font-size: 0.7rem; font-family: sans-serif; padding: 0.2rem 0.5rem;
       border-radius: 999px; align-self: center;
@@ -217,6 +287,8 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
                 ? <button class="btn btn-public" data-action="visibility" data-slug={post.slug} data-visibility="public">Make Public</button>
                 : <button class="btn btn-unlisted" data-action="visibility" data-slug={post.slug} data-visibility="unlisted">Make Unlisted</button>
               }
+              <button class="btn btn-edit" data-action="edit" data-slug={post.slug}>Edit</button>
+              <button class="btn btn-remove" data-action="remove" data-slug={post.slug}>Remove</button>
               <a href={"/u/" + handle + "/" + post.slug} target="_blank" class="btn btn-preview">Preview →</a>
             </div>
           </div>
@@ -226,6 +298,23 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title">Edit Post</span>
+        <button class="modal-close" id="modal-close-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <div class="modal-loading">Loading post…</div>
+      </div>
+      <div class="modal-footer" id="modal-footer" style="display:none;">
+        <button class="btn btn-cancel" id="edit-cancel">Cancel</button>
+        <button class="btn btn-save" id="edit-save">Save &amp; Publish</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     function showToast(msg) {
@@ -244,6 +333,139 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
       return { ok: res.ok, data: await res.json() };
     }
 
+    // ── Edit modal ─────────────────────────────────────────────────────────
+    const modal = document.getElementById('edit-modal');
+    const modalBody = document.getElementById('modal-body');
+    const modalFooter = document.getElementById('modal-footer');
+    let currentEditSlug = null;
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      currentEditSlug = null;
+      modalBody.innerHTML = '<div class="modal-loading">Loading post…</div>';
+      modalFooter.style.display = 'none';
+    }
+
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('edit-cancel').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    async function openEditModal(slug) {
+      currentEditSlug = slug;
+      openModal();
+
+      try {
+        const res = await fetch(`/api/contribute/post?slug=${encodeURIComponent(slug)}`);
+        if (!res.ok) throw new Error('Failed to load post');
+        const { frontmatter: fm, body } = await res.json();
+
+        modalBody.innerHTML = `
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>Title</label>
+              <input type="text" id="edit-title" value="${escHtml(fm.title || '')}" />
+            </div>
+            <div class="modal-field">
+              <label>Location</label>
+              <input type="text" id="edit-location" value="${escHtml(fm.location || '')}" />
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Description</label>
+            <textarea id="edit-description" rows="2">${escHtml(fm.description || '')}</textarea>
+          </div>
+          <div class="modal-field">
+            <label>Visibility</label>
+            <div class="modal-vis">
+              <label class="modal-vis-option">
+                <input type="radio" name="edit-vis" value="public" ${fm.visibility === 'public' ? 'checked' : ''} />
+                <div class="modal-vis-label">🌐 Public</div>
+              </label>
+              <label class="modal-vis-option">
+                <input type="radio" name="edit-vis" value="unlisted" ${fm.visibility !== 'public' ? 'checked' : ''} />
+                <div class="modal-vis-label">🔒 Unlisted</div>
+              </label>
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Content (Markdown)</label>
+            <textarea id="edit-body" class="mono" rows="22">${escHtml(body || '')}</textarea>
+          </div>
+        `;
+        modalFooter.style.display = 'flex';
+      } catch (err) {
+        modalBody.innerHTML = `<div class="modal-loading" style="color:var(--terracotta);">Failed to load post: ${err.message}</div>`;
+      }
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('edit-save').addEventListener('click', async () => {
+      if (!currentEditSlug) return;
+      const saveBtn = document.getElementById('edit-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+
+      const title = document.getElementById('edit-title')?.value.trim() || '';
+      const description = document.getElementById('edit-description')?.value.trim() || '';
+      const location = document.getElementById('edit-location')?.value.trim() || '';
+      const visibility = document.querySelector('input[name="edit-vis"]:checked')?.value || 'unlisted';
+      const body = document.getElementById('edit-body')?.value || '';
+
+      const { ok, data } = await apiCall({
+        action: 'edit',
+        slug: currentEditSlug,
+        title,
+        description,
+        location,
+        visibility,
+        body,
+      });
+
+      if (ok) {
+        // Update the row title in the list
+        const row = document.getElementById('pub-' + currentEditSlug);
+        if (row) {
+          const titleEl = row.querySelector('.post-title');
+          if (titleEl) titleEl.textContent = title;
+
+          // Update visibility badge and toggle button
+          const badge = document.getElementById('vis-' + currentEditSlug);
+          if (badge) {
+            badge.textContent = visibility === 'public' ? '🌐 Public' : '🔒 Unlisted';
+            badge.className = 'vis-badge ' + (visibility === 'public' ? 'vis-public' : 'vis-unlisted');
+          }
+          const visBtn = row.querySelector('button[data-action="visibility"]');
+          if (visBtn) {
+            const newVis = visibility === 'public' ? 'unlisted' : 'public';
+            visBtn.textContent = visibility === 'public' ? 'Make Unlisted' : 'Make Public';
+            visBtn.className = 'btn ' + (visibility === 'public' ? 'btn-unlisted' : 'btn-public');
+            visBtn.dataset.visibility = newVis;
+          }
+        }
+        closeModal();
+        showToast('Post updated.');
+      } else {
+        showToast('Error: ' + (data?.error || 'unknown'));
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save & Publish';
+      }
+    });
+
+    // ── Main click handler ─────────────────────────────────────────────────
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-action]');
       if (!btn) return;
@@ -258,7 +480,7 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
         const { ok, data } = await apiCall({ action: 'approve', slug });
         if (ok) {
           document.getElementById('review-' + slug)?.remove();
-          showToast('✓ Post approved and published!');
+          showToast('Post approved and published!');
         } else {
           showToast('Error: ' + (data.error || 'unknown'));
           btn.disabled = false;
@@ -285,23 +507,40 @@ const publishedPosts = readPosts(PUBLISHED_DIR);
         btn.textContent = 'Saving…';
         const { ok } = await apiCall({ action: 'visibility', slug, visibility });
         if (ok) {
-          // Update badge
           const badge = document.getElementById('vis-' + slug);
           if (badge) {
             badge.textContent = visibility === 'public' ? '🌐 Public' : '🔒 Unlisted';
             badge.className = 'vis-badge ' + (visibility === 'public' ? 'vis-public' : 'vis-unlisted');
           }
-          // Flip the button to opposite action
           const newVis = visibility === 'public' ? 'unlisted' : 'public';
           btn.disabled = false;
           btn.textContent = visibility === 'public' ? 'Make Unlisted' : 'Make Public';
           btn.className = 'btn ' + (visibility === 'public' ? 'btn-unlisted' : 'btn-public');
           btn.dataset.visibility = newVis;
-          showToast(visibility === 'public' ? '🌐 Post is now public!' : '🔒 Post is now unlisted.');
+          showToast(visibility === 'public' ? 'Post is now public!' : 'Post is now unlisted.');
         } else {
           btn.disabled = false;
           btn.textContent = visibility === 'public' ? 'Make Public' : 'Make Unlisted';
         }
+      }
+
+      if (action === 'remove') {
+        if (!confirm('Permanently delete this published post? This cannot be undone.')) return;
+        btn.disabled = true;
+        btn.textContent = 'Removing…';
+        const { ok, data } = await apiCall({ action: 'remove', slug });
+        if (ok) {
+          document.getElementById('pub-' + slug)?.remove();
+          showToast('Post removed.');
+        } else {
+          showToast('Error: ' + (data?.error || 'unknown'));
+          btn.disabled = false;
+          btn.textContent = 'Remove';
+        }
+      }
+
+      if (action === 'edit') {
+        openEditModal(slug);
       }
     });
   </script>

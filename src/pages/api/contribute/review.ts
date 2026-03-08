@@ -37,6 +37,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     approve:    '/review/approve',
     reject:     '/review/reject',
     visibility: '/review/visibility',
+    remove:     '/review/remove',
+    edit:       '/review/edit',
   };
 
   const route = routeMap[action];
@@ -46,6 +48,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   }
 
+  const { title, description, location, body: postBody } = body;
+
   try {
     const webhookRes = await fetch(`${WEBHOOK_BASE}${route}`, {
       method: 'POST',
@@ -53,7 +57,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         'Content-Type': 'application/json',
         'x-pipeline-secret': PIPELINE_SECRET,
       },
-      body: JSON.stringify({ slug, userHandle: handle, visibility: visibility || undefined }),
+      body: JSON.stringify({
+        slug,
+        userHandle: handle,
+        visibility: visibility || undefined,
+        title: title || undefined,
+        description: description || undefined,
+        location: location || undefined,
+        body: postBody || undefined,
+      }),
     });
 
     const data = await webhookRes.json();
