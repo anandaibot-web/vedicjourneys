@@ -14,7 +14,7 @@ contextConfidence: "high"
 
 ## Introduction – Why This Journey
 
-There is no rational explanation for wanting to come here. Yama Dwar — the Gate of Death — is not a destination that lures with comfort or convenience. The road to this threshold crosses some of the most unforgiving terrain on earth, and the name itself is not metaphor. It is instruction. You pass through the gate of Yama, the god of death, before you begin the circumambulation of Kailash. The ancient rishis were not being dramatic. They were being precise.
+Yama Dwar — the Gate of Death — is not a destination that lures with comfort or convenience. The road to this threshold crosses some of the most unforgiving terrain on earth, and the name itself is not metaphor. It is instruction. You pass through the gate of Yama, the god of death, before you begin the circumambulation of Kailash. The ancient rishis were not being dramatic. They were being precise.
 
 I had read about this gate long before I ever thought it reachable. The parikrama of Kailash is not simply a trek around a mountain. It is an acknowledgment — that something in you must be surrendered before you complete the circle. I had circled many things in my life without surrendering anything. Perhaps that is why I kept returning to this in my mind, year after year, until July 2025, when I finally stood here.
 
