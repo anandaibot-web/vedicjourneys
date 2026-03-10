@@ -1,0 +1,807 @@
+---
+// src/pages/vedanta/index.astro
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+const schools = await getCollection('vedantaSchools');
+const timeline = await getCollection('vedantaChronology');
+const verses = await getCollection('vedantaVerses');
+
+// Sort chronology by filename prefix (01-, 02-, 03-)
+timeline.sort((a, b) => a.id.localeCompare(b.id));
+
+// School display order and accent colours
+const schoolMeta: Record<string, { order: number; accent: string; symbol: string }> = {
+  'advaita':          { order: 0, accent: '#b5673d', symbol: '∞' },
+  'vishishtadvaita':  { order: 1, accent: '#7a5c2e', symbol: '❧' },
+  'dvaita':           { order: 2, accent: '#4a7c59', symbol: '✦' },
+};
+
+schools.sort((a, b) => {
+  const ao = schoolMeta[a.id]?.order ?? 99;
+  const bo = schoolMeta[b.id]?.order ?? 99;
+  return ao - bo;
+});
+
+const difficultyLabel: Record<string, string> = {
+  beginner:     'Accessible entry point',
+  intermediate: 'Prior grounding helpful',
+  advanced:     'Rigorous self-inquiry required',
+};
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <BaseHead
+    title="Vedanta — Vedic Journeys"
+    description="An orientation to Vedanta: the three great schools, a historical timeline from the Vedas to Shankara, and verses from the Bhagavad Gita."
+  />
+  <style>
+    /* ── Tokens ─────────────────────────────────────── */
+    :root {
+      --cream:       #faf7f2;
+      --warm:        #f0ebe0;
+      --sand:        #d4c5a9;
+      --terracotta:  #b5673d;
+      --saffron:     #e8922a;
+      --deep:        #2c1810;
+      --mid:         #6b4c38;
+      --light:       #9a7b68;
+      --forest:      #4a7c59;
+      --umber:       #7a5c2e;
+      --serif:       'Playfair Display', 'Georgia', serif;
+      --sans:        'Crimson Pro', 'Palatino Linotype', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cream);
+      color: var(--deep);
+      font-family: var(--sans);
+      font-size: 18px;
+      line-height: 1.7;
+    }
+
+    /* ── Page hero ──────────────────────────────────── */
+    .page-hero {
+      background: var(--deep);
+      padding: 6rem 2rem 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-hero::before {
+      content: 'वेदान्त';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: clamp(8rem, 20vw, 18rem);
+      color: rgba(212, 197, 169, 0.04);
+      pointer-events: none;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 1.5rem;
+      opacity: 0.7;
+    }
+
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--sand);
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: rgba(212, 197, 169, 0.8);
+      max-width: 52ch;
+      margin: 0 auto 2.5rem;
+      line-height: 1.8;
+    }
+
+    .hero-sanskrit {
+      display: inline-block;
+      padding: 0.75rem 2rem;
+      border: 1px solid rgba(212, 197, 169, 0.25);
+      border-radius: 2px;
+      font-size: 0.9rem;
+      color: var(--sand);
+      font-style: italic;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Shared layout ──────────────────────────────── */
+    .section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--sand);
+    }
+
+    .section-title {
+      font-family: var(--serif);
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 700;
+      color: var(--deep);
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .section-intro {
+      color: var(--mid);
+      max-width: 60ch;
+      margin-bottom: 3rem;
+      font-size: 1.05rem;
+      line-height: 1.8;
+    }
+
+    /* ── School cards ───────────────────────────────── */
+    .schools-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .school-card {
+      background: white;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 2px 20px rgba(44, 24, 16, 0.06);
+      transition: box-shadow 0.3s, transform 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .school-card:hover {
+      box-shadow: 0 8px 40px rgba(44, 24, 16, 0.12);
+      transform: translateY(-3px);
+    }
+
+    .school-card-accent {
+      height: 4px;
+    }
+
+    .school-card-body {
+      padding: 2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .school-symbol {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      line-height: 1;
+    }
+
+    .school-name {
+      font-family: var(--serif);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--deep);
+      margin-bottom: 0.35rem;
+    }
+
+    .school-tagline {
+      font-size: 0.85rem;
+      color: var(--light);
+      font-style: italic;
+      margin-bottom: 1.25rem;
+      line-height: 1.5;
+    }
+
+    .school-founder {
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      color: var(--mid);
+      margin-bottom: 1.25rem;
+    }
+
+    .school-teaching {
+      font-size: 0.95rem;
+      color: var(--mid);
+      line-height: 1.7;
+      flex: 1;
+      margin-bottom: 1.5rem;
+    }
+
+    .school-footer {
+      border-top: 1px solid var(--warm);
+      padding-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .difficulty-badge {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 2px;
+      background: var(--warm);
+      color: var(--mid);
+    }
+
+    .key-texts-count {
+      font-size: 0.8rem;
+      color: var(--light);
+    }
+
+    /* ── Timeline ───────────────────────────────────── */
+    .timeline-section {
+      background: var(--warm);
+      padding: 5rem 0;
+    }
+
+    .timeline-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .timeline-scroll {
+      overflow-x: auto;
+      padding-bottom: 1rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--sand) transparent;
+    }
+
+    .timeline-scroll::-webkit-scrollbar { height: 4px; }
+    .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+    .timeline-scroll::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
+
+    .timeline-track {
+      display: flex;
+      gap: 0;
+      min-width: max-content;
+      padding: 1rem 0 2rem;
+      position: relative;
+    }
+
+    /* The horizontal spine */
+    .timeline-track::before {
+      content: '';
+      position: absolute;
+      top: 2.75rem;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--sand) 5%, var(--sand) 95%, transparent);
+    }
+
+    .timeline-entry {
+      width: 320px;
+      flex-shrink: 0;
+      padding: 0 2rem;
+      position: relative;
+    }
+
+    .timeline-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--terracotta);
+      border: 3px solid var(--warm);
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 0 0 2px var(--terracotta);
+    }
+
+    .timeline-era {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 0.25rem;
+    }
+
+    .timeline-date {
+      font-size: 0.8rem;
+      color: var(--light);
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-title {
+      font-family: var(--serif);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--deep);
+      margin-bottom: 0.75rem;
+      line-height: 1.3;
+    }
+
+    .timeline-desc {
+      font-size: 0.9rem;
+      color: var(--mid);
+      line-height: 1.7;
+    }
+
+    .timeline-texts {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .timeline-text-chip {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.6rem;
+      background: white;
+      border: 1px solid var(--sand);
+      border-radius: 2px;
+      color: var(--mid);
+    }
+
+    /* ── Where to start ─────────────────────────────── */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    .guide-path {
+      counter-reset: step;
+    }
+
+    .guide-step {
+      display: flex;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      counter-increment: step;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--terracotta);
+      color: white;
+      font-size: 0.8rem;
+      font-family: var(--serif);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+
+    .step-content h4 {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--deep);
+      margin-bottom: 0.35rem;
+    }
+
+    .step-content p {
+      font-size: 0.95rem;
+      color: var(--mid);
+      line-height: 1.7;
+    }
+
+    .guide-aside {
+      background: var(--deep);
+      border-radius: 4px;
+      padding: 2.5rem;
+      color: var(--sand);
+    }
+
+    .guide-aside h3 {
+      font-family: var(--serif);
+      font-size: 1.3rem;
+      color: white;
+      margin-bottom: 1.5rem;
+    }
+
+    .aside-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(212, 197, 169, 0.15);
+      font-size: 0.95rem;
+    }
+
+    .aside-item:last-child { border-bottom: none; }
+
+    .aside-item strong {
+      display: block;
+      color: var(--sand);
+      margin-bottom: 0.25rem;
+      font-family: var(--sans);
+    }
+
+    .aside-item span {
+      color: rgba(212, 197, 169, 0.6);
+      font-size: 0.875rem;
+    }
+
+    /* ── Verse cards ────────────────────────────────── */
+    .verses-section {
+      background: var(--deep);
+      padding: 5rem 0;
+    }
+
+    .verses-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .verses-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 1rem;
+      opacity: 0.6;
+    }
+
+    .verses-title {
+      font-family: var(--serif);
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      color: white;
+      margin-bottom: 0.75rem;
+    }
+
+    .verses-intro {
+      color: rgba(212, 197, 169, 0.7);
+      max-width: 56ch;
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 3rem;
+    }
+
+    .verses-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .verse-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(212, 197, 169, 0.15);
+      border-radius: 4px;
+      padding: 2rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .verse-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(212, 197, 169, 0.3);
+    }
+
+    .verse-ref {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--saffron);
+      margin-bottom: 1.25rem;
+    }
+
+    .verse-sanskrit {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      color: white;
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+
+    .verse-transliteration {
+      font-size: 0.85rem;
+      color: rgba(212, 197, 169, 0.6);
+      font-style: italic;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+
+    .verse-translation {
+      font-size: 0.95rem;
+      color: var(--sand);
+      line-height: 1.8;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(212, 197, 169, 0.15);
+      margin-bottom: 1.25rem;
+    }
+
+    .verse-observation {
+      font-size: 0.875rem;
+      color: rgba(212, 197, 169, 0.55);
+      line-height: 1.7;
+      font-style: italic;
+    }
+
+    .verse-school-tag {
+      display: inline-block;
+      margin-top: 1.25rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid rgba(212, 197, 169, 0.2);
+      border-radius: 2px;
+      color: rgba(212, 197, 169, 0.5);
+    }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 900px) {
+      .schools-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+      .guide-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .verses-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .page-hero { padding: 4rem 1.5rem 3.5rem; }
+      .section { padding: 3.5rem 1.5rem; }
+      .timeline-entry { width: 280px; padding: 0 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <Header />
+
+  <!-- ── Page hero ── -->
+  <section class="page-hero">
+    <div class="hero-inner">
+      <p class="hero-eyebrow">Vedic Journeys · Learning</p>
+      <h1 class="hero-title">
+        <em>Vedanta</em>
+      </h1>
+      <p class="hero-subtitle">
+        The end of the Vedas — and the beginning of self-inquiry. Three schools,
+        one question: what is the relationship between the individual self and
+        ultimate reality?
+      </p>
+      <span class="hero-sanskrit">
+        अयमात्मा ब्रह्म — This Self is Brahman. (Mandukya Upanishad)
+      </span>
+    </div>
+  </section>
+
+  <!-- ── Three Schools ── -->
+  <section class="section">
+    <p class="section-label">The three schools</p>
+    <h2 class="section-title">Three Answers to One Question</h2>
+    <p class="section-intro">
+      Vedanta is not a single doctrine but a family of philosophical traditions
+      — all rooted in the Upanishads, all wrestling with the same texts, yet
+      arriving at radically different conclusions about the nature of God,
+      self, and the world.
+    </p>
+
+    <div class="schools-grid">
+      {schools.map(school => {
+        const meta = schoolMeta[school.id] ?? { accent: '#b5673d', symbol: '✦' };
+        return (
+          <article class="school-card">
+            <div class="school-card-accent" style={`background: ${meta.accent}`}></div>
+            <div class="school-card-body">
+              <div class="school-symbol" style={`color: ${meta.accent}`}>{meta.symbol}</div>
+              <h3 class="school-name">{school.data.name}</h3>
+              <p class="school-tagline">"{school.data.tagline}"</p>
+              <p class="school-founder">Founded by {school.data.founder}</p>
+              <p class="school-teaching">{school.data.coreTeaching}</p>
+              <div class="school-footer">
+                <span class="difficulty-badge">
+                  {difficultyLabel[school.data.difficulty]}
+                </span>
+                <span class="key-texts-count">
+                  {school.data.keyTexts.length} key texts
+                </span>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </section>
+
+  <!-- ── Historical Timeline ── -->
+  <div class="timeline-section">
+    <div class="timeline-inner">
+      <p class="section-label">Historical arc</p>
+      <h2 class="section-title">From Veda to Vedanta</h2>
+      <p class="section-intro">
+        Vedanta did not appear fully formed. It is the culmination of a
+        transmission across three millennia — from the Vedic hymns, through
+        the forest dialogues of the Upanishads, to the great synthesisers
+        who turned scattered insights into rigorous philosophical schools.
+      </p>
+
+      <div class="timeline-scroll">
+        <div class="timeline-track">
+          {timeline.map(entry => (
+            <div class="timeline-entry">
+              <div class="timeline-dot"></div>
+              <p class="timeline-era">{entry.data.era}</p>
+              <p class="timeline-date">{entry.data.dateRange}</p>
+              <h3 class="timeline-title">{entry.data.title}</h3>
+              <p class="timeline-desc">{entry.data.description}</p>
+              {entry.data.linkedTexts && entry.data.linkedTexts.length > 0 && (
+                <div class="timeline-texts">
+                  {entry.data.linkedTexts.slice(0, 4).map(text => (
+                    <span class="timeline-text-chip">{text}</span>
+                  ))}
+                  {entry.data.linkedTexts.length > 4 && (
+                    <span class="timeline-text-chip">+{entry.data.linkedTexts.length - 4} more</span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Where to Start ── -->
+  <section class="section">
+    <p class="section-label">Where to start</p>
+    <h2 class="section-title">A Path Through the Teaching</h2>
+    <p class="section-intro">
+      Vedanta is traditionally transmitted from teacher to student, not
+      consumed as information. But here is an orientation for the modern
+      inquirer approaching this tradition for the first time.
+    </p>
+
+    <div class="guide-grid">
+      <div class="guide-path">
+        <div class="guide-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Begin with the Bhagavad Gita</h4>
+            <p>
+              The Gita is the most accessible entry into Vedantic thought.
+              Its setting (a battlefield, a moment of crisis) mirrors the
+              inner conditions that make philosophy necessary. Start with
+              chapters 2, 3, and 4 for the foundational framework.
+            </p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Read a short Upanishad</h4>
+            <p>
+              The Kena, Isha, and Mandukya Upanishads are each under
+              twenty verses. The Mandukya in particular is considered
+              by Gaudapada and Shankara to contain the entire Vedanta.
+              Read with a good translation — Swami Dayananda or
+              Swami Paramarthananda's commentaries are excellent.
+            </p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Choose a school that speaks to you</h4>
+            <p>
+              If you are drawn to radical non-duality — "I am Brahman" —
+              enter through Advaita. If you are moved by devotion and
+              the reality of love between soul and God, Vishishtadvaita
+              or Dvaita may be your natural home. None is superior;
+              all point at the same sky.
+            </p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h4>Find a living teacher if you can</h4>
+            <p>
+              The tradition insists on this. Shankara's method is
+              shravana (listening) → manana (reflection) → nididhyasana
+              (deep contemplation). The first stage requires a competent
+              teacher. Books can supplement but not replace transmission.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="guide-aside">
+        <h3>Recommended first texts</h3>
+        <div class="aside-item">
+          <strong>Bhagavad Gita</strong>
+          <span>Any tradition — Advaita, Vishishtadvaita, Dvaita · ~700 verses</span>
+        </div>
+        <div class="aside-item">
+          <strong>Vivekachudamani</strong>
+          <span>Advaita · Shankara · 581 verses on discrimination between real and unreal</span>
+        </div>
+        <div class="aside-item">
+          <strong>Mandukya Upanishad</strong>
+          <span>All schools · 12 verses · States of consciousness</span>
+        </div>
+        <div class="aside-item">
+          <strong>Isha Upanishad</strong>
+          <span>All schools · 18 verses · The Lord pervading all</span>
+        </div>
+        <div class="aside-item">
+          <strong>Tattva Bodha</strong>
+          <span>Advaita · Shankara · Short catechism — ideal first text</span>
+        </div>
+        <div class="aside-item">
+          <strong>Narada Bhakti Sutras</strong>
+          <span>Vishishtadvaita, Dvaita · 84 sutras on the nature of devotion</span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ── Verse samples ── -->
+  <div class="verses-section">
+    <div class="verses-inner">
+      <p class="verses-label">From the Bhagavad Gita</p>
+      <h2 class="verses-title">Verses for Contemplation</h2>
+      <p class="verses-intro">
+        The Bhagavad Gita — 700 verses across eighteen chapters — is the
+        most studied Vedantic text. Each school has its own commentary,
+        each reading brings out different facets of the same jewel.
+      </p>
+      <div class="verses-grid">
+        {verses.map(verse => (
+          <article class="verse-card">
+            <p class="verse-ref">
+              Bhagavad Gita {verse.data.source.chapter}.{verse.data.source.verse}
+            </p>
+            <p class="verse-sanskrit">{verse.data.sanskrit}</p>
+            <p class="verse-transliteration">{verse.data.transliteration}</p>
+            <p class="verse-translation">{verse.data.translation}</p>
+            <p class="verse-observation">{verse.data.realLifeObservation.split('\n')[0]}</p>
+            <span class="verse-school-tag">{verse.data.school}</span>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</body>
+</html>
