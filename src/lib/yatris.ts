@@ -29,6 +29,22 @@ export const YATRIS: Record<string, Yatri> = {
     avatar: '/avatars/vidya.jpg',
     destinations: [],
   },
+  sethu: {
+    handle: 'sethu',
+    displayName: 'Sethu Madhava',
+    bio: 'Traveller and contemplative. Sethu brings a quiet, observational lens to sacred spaces, finding the extraordinary in the everyday landscapes of pilgrimage.',
+    location: 'San Diego, CA',
+    avatar: '/avatars/sethu.jpg',
+    destinations: [],
+  },
+  kailash-yatra-2025: {
+    handle: 'kailash-yatra-2025',
+    displayName: 'Mt. Kailash & Manasarovar Yatra 2025',
+    bio: 'A group of 26 members from various backgrounds, coming together and making this piligrimate to Manasarovar & Mount Kailash during July 2025.',
+    location: 'San Diego, CA',
+    avatar: '/avatars/kailash2025.jpg',
+    destinations: [],
+  },
 };
 
 export function getYatri(handle: string): Yatri {
