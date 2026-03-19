@@ -1,5 +1,5 @@
 ---
-title: "On the Ganges at Varanasi: Between Life and Ash"
+title: "On the Ganges at Varanasi: During Maha Kumbh Mela"
 description: "A first-person pilgrimage account from the ghats of Varanasi — the river, the smoke, the stone steps, and what the body understands before the mind does."
 pubDate: 2025-01-01
 heroImage: "/blog-images/anand/on-the-ganges-at-varanasi-between-life-and-ash.jpg"
@@ -14,9 +14,9 @@ contextConfidence: "high"
 
 ## Introduction – Why This Journey
 
-You do not choose Varanasi. It chooses you — and usually at a moment when you are ready to be undone.
+The 2025 Prayag Maha Kumbh Mela, a Hindu pilgrimage festival that marked a full orbital revolution of Jupiter around the Sun. It was scheduled from 13 January to 26 February 2025, at the Triveni Sangam in Prayagraj, Uttar Pradesh, India. It was the world's largest gathering, and according to data released on 26 February, more than 660 million (66 crores) people had taken a dip in the river. This event marked the completion of a 12-year Kumbh Mela cycle and was officially termed a Maha Kumbh Mela, spanning 45 days.
 
-I had circled this city for years in my imagination. Every pilgrim tradition I had followed — from the Pashupatinath temple steps in Kathmandu to the wind-scoured plains of Darchen at the foot of Kailash — eventually pointed here, to Kashi, the city that is said to be older than history and indifferent to it. People come to Varanasi to bathe, to pray, to die, and occasionally to simply sit with the fact that all three are the same gesture. I came by boat, which felt right. Arriving on water means the city reveals itself slowly, as a series of walls and spires and stone terraces climbing away from the river — not all at once, but in layers, like something being remembered rather than seen for the first time.
+People come to Varanasi to bathe, to pray, to die, and occasionally to simply sit with the fact that all three are the same gesture. 
 
 ## The Landscape & Physical Experience
 
@@ -26,13 +26,11 @@ The smell reaches you before the details do. Woodsmoke, river water, incense, ma
 
 The stone steps of the ghats descend in broad terraces to the waterline, worn smooth at their edges, darkened with river water and ritual. Standing on them — as I did before boarding the boat — the ground is uneven underfoot, slightly damp, alive with pigeons and the distant percussion of temple bells. The air sits heavy and cool against the skin. The water laps at the lowest steps with a sound that is almost gentle, which surprises you every time.
 
-## Inner Reflection – An Advaita Lens
+## Inner Reflection – A Vedanta Lens
 
 There is a particular thought that comes on the river. It arrives not as idea but as sensation — a loosening of the boundary between the one watching and the thing being watched.
 
-The ghats do not perform. The smoke does not perform. The river certainly does not. And so the witness in me — the one who came here with a phone and intentions and a sense of being a self making a pilgrimage — begins to feel slightly beside the point. Advaita Vedanta teaches that the witness and the witnessed are not two things. Varanasi does not teach this. It simply makes the concept feel less abstract by surrounding you with its most uncompromising illustration: life and death occupying the same stone steps, the same river, the same morning.
-
-I thought of what I had written after standing at the foot of Potala Palace in Lhasa — that sense of architecture built not to impress but to orient. Varanasi does something similar, but rawer. There is no grandeur here designed to elevate the spirit. There is only the river, the fire, the stone, and the question of who exactly is standing between them.
+Advaita Vedanta teaches that the witness and the witnessed are not two things. Varanasi does not teach this. It simply makes the concept feel less abstract by surrounding you with its most uncompromising illustration: life and death occupying the same stone steps, the same river, the same morning.
 
 ## A Sloka for the Path
 
